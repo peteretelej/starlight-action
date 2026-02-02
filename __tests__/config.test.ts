@@ -1,0 +1,134 @@
+import { describe, it, expect, vi } from 'vitest'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { createTempDir } from './helpers.js'
+import { generateConfig, type StarlightActionInputs } from '../src/config.js'
+
+vi.mock('@actions/core', () => ({
+  info: vi.fn(),
+  warning: vi.fn(),
+  getInput: vi.fn(),
+  setFailed: vi.fn(),
+  startGroup: vi.fn(),
+  endGroup: vi.fn(),
+}))
+
+function setupProjectDir(docs: Record<string, string>): string {
+  const files: Record<string, string> = {}
+  for (const [key, value] of Object.entries(docs)) {
+    files[`src/content/docs/${key}`] = value
+  }
+  return createTempDir(files)
+}
+
+describe('generateConfig', () => {
+  it('generates default config', () => {
+    const projectDir = setupProjectDir({
+      'getting-started.md': '---\ntitle: "Getting Started"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Documentation site',
+      base: '/my-repo',
+      site: 'https://user.github.io',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const configPath = path.join(projectDir, 'astro.config.mjs')
+    expect(fs.existsSync(configPath)).toBe(true)
+
+    const content = fs.readFileSync(configPath, 'utf-8')
+    expect(content).toContain("title: \"My Docs\"")
+    expect(content).toContain("description: \"Documentation site\"")
+    expect(content).toContain("site: 'https://user.github.io'")
+    expect(content).toContain("base: '/my-repo'")
+    expect(content).toContain('Getting Started')
+  })
+
+  it('generates config with all inputs including logo', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+    // Create a fake logo
+    fs.mkdirSync(path.join(projectDir, 'public'), { recursive: true })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Project',
+      description: 'A great project',
+      base: '/project',
+      site: 'https://user.github.io',
+      logo: 'assets/logo.svg',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain('logo')
+    expect(content).toContain('logo.svg')
+  })
+
+  it('deep-merges with user config file', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    // Write a user config JSON
+    const userConfigPath = path.join(projectDir, 'starlight.config.json')
+    fs.writeFileSync(
+      userConfigPath,
+      JSON.stringify({
+        editLink: { baseUrl: 'https://github.com/user/repo/edit/main/' },
+        social: { github: 'https://github.com/user/repo' },
+      }),
+      'utf-8',
+    )
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      configPath: userConfigPath,
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain('editLink')
+    expect(content).toContain('social')
+    expect(content).toContain('github')
+  })
+
+  it('user config values override generated values', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const userConfigPath = path.join(projectDir, 'starlight.config.json')
+    fs.writeFileSync(
+      userConfigPath,
+      JSON.stringify({
+        title: 'User Override Title',
+        description: 'User description',
+      }),
+      'utf-8',
+    )
+
+    const inputs: StarlightActionInputs = {
+      title: 'Generated Title',
+      description: 'Generated description',
+      base: '/repo',
+      site: 'https://user.github.io',
+      configPath: userConfigPath,
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain('User Override Title')
+    expect(content).toContain('User description')
+    expect(content).not.toContain('Generated Title')
+  })
+})
