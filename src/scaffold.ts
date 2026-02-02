@@ -3,6 +3,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import { restoreNpmCache, saveNpmCache } from './cache'
 
 const ASTRO_VERSION = '^5.0.0'
 const STARLIGHT_VERSION = '~0.34.0'
@@ -35,11 +36,19 @@ export async function scaffoldProject(): Promise<string> {
     'utf-8',
   )
 
+  // Restore npm cache if available
+  const cacheHit = await restoreNpmCache(projectDir)
+
   // Install dependencies
   core.info('Installing Astro and Starlight dependencies...')
   await exec.exec('npm', ['install', '--prefer-offline'], {
     cwd: projectDir,
   })
+
+  // Save npm cache on miss
+  if (!cacheHit) {
+    await saveNpmCache(projectDir)
+  }
 
   // Create required directory structure
   const dirs = [
