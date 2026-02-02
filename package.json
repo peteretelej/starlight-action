@@ -26,6 +26,7 @@
   "author": "peteretelej",
   "license": "MIT",
   "dependencies": {
+    "@actions/artifact": "^2.2.0",
     "@actions/cache": "^4.0.0",
     "@actions/core": "^1.11.0",
     "@actions/exec": "^1.1.1",
