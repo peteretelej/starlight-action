@@ -5,6 +5,7 @@
   "description": "GitHub Action that builds a Starlight documentation site from your Markdown files",
   "main": "dist/index.js",
   "scripts": {
+    "prepare": "git config core.hooksPath .hooks",
     "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
     "test": "vitest run",
     "test:watch": "vitest",

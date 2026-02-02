@@ -1,0 +1,19 @@
+#!/bin/sh
+# Pre-commit hook: rebuild dist/ and stage it if source files changed
+
+# Check if any src/ or package files changed (staged)
+STAGED_SRC=$(git diff --cached --name-only --diff-filter=ACMR -- 'src/**' 'package.json' 'package-lock.json' 'tsconfig.json')
+
+if [ -z "$STAGED_SRC" ]; then
+  exit 0
+fi
+
+echo "Source files changed, rebuilding dist/..."
+npm run build
+
+if [ $? -ne 0 ]; then
+  echo "Build failed. Commit aborted."
+  exit 1
+fi
+
+git add dist/
