@@ -48,7 +48,7 @@ function toSlug(relativePath: string): string {
   let slug = relativePath.replace(/\.md$/, '')
   slug = slug.replace(/\/index$/, '')
   if (slug === 'index') slug = ''
-  return `/${slug}`
+  return `/${slug.toLowerCase()}`
 }
 
 /**

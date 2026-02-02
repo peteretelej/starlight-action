@@ -15,6 +15,13 @@ describe('rewriteReadmeLinks', () => {
     expect(result).toContain('/my-repo/contributing/')
   })
 
+  it('lowercases rewritten paths for uppercase filenames', async () => {
+    const content = 'See [contributing](docs/CONTRIBUTING.md).'
+    const result = await rewriteReadmeLinks(content, 'docs', '/my-repo')
+    expect(result).toContain('/my-repo/contributing/')
+    expect(result).not.toContain('CONTRIBUTING')
+  })
+
   it('leaves external links unchanged', async () => {
     const content = 'Visit [website](https://example.com) for more.'
     const result = await rewriteReadmeLinks(content, 'docs', '/my-repo')

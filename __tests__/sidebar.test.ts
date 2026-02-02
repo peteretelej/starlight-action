@@ -87,6 +87,19 @@ describe('generateSidebar', () => {
     expect(sidebar[0].label).toBe('Guide')
   })
 
+  it('lowercases slugs for uppercase filenames', () => {
+    const dir = createTempDir({
+      'CONTRIBUTING.md': '---\ntitle: "Contributing"\n---\n\nContent.\n',
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const sidebar = generateSidebar(dir)
+
+    const contributing = sidebar.find((s) => s.label === 'Contributing')
+    expect(contributing).toBeDefined()
+    expect(contributing!.link).toBe('/contributing')
+  })
+
   it('includes index.md in nested directories', () => {
     const dir = createTempDir({
       'api/index.md': '---\ntitle: "API Overview"\n---\n\nOverview.\n',

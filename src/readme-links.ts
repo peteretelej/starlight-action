@@ -53,8 +53,8 @@ export async function rewriteReadmeLinks(
     // Strip trailing /index
     relative = relative.replace(/\/index$/, '')
 
-    // Build site-relative path
-    node.url = `${normalizedBase}/${relative}/`
+    // Build site-relative path (lowercase to match Astro's route generation)
+    node.url = `${normalizedBase}/${relative.toLowerCase()}/`
   })
 
   const result = unified().use(remarkStringify).stringify(tree)
