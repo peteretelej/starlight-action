@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { createTempDir } from './helpers.js'
-import { generateConfig, type StarlightActionInputs } from '../src/config.js'
+import { generateConfig, buildThemeImport, type StarlightActionInputs } from '../src/config.js'
 
 vi.mock('@actions/core', () => ({
   info: vi.fn(),
@@ -222,5 +222,121 @@ describe('generateConfig', () => {
 
     const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
     expect(content).not.toContain('customCss')
+  })
+
+  it('generates config with theme default export', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      theme: 'starlight-theme-rapide',
+      themePlugin: 'starlightThemeRapide',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain("import starlightThemeRapide from 'starlight-theme-rapide'")
+    expect(content).toContain('plugins: [starlightThemeRapide()]')
+  })
+
+  it('generates config with theme named export', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      theme: 'starlight-ion-theme',
+      themePlugin: '{ ion }',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain("import { ion } from 'starlight-ion-theme'")
+    expect(content).toContain('plugins: [ion()]')
+  })
+
+  it('generates config with theme options', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      theme: '@catppuccin/starlight',
+      themePlugin: 'catppuccin',
+      themeOptions: '{"flavor":"mocha","accent":"blue"}',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain("import catppuccin from '@catppuccin/starlight'")
+    expect(content).toContain('plugins: [catppuccin({"flavor":"mocha","accent":"blue"})]')
+  })
+
+  it('does not include plugins when no theme provided', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).not.toContain('plugins')
+  })
+})
+
+describe('buildThemeImport', () => {
+  it('parses default export', () => {
+    const result = buildThemeImport('starlight-theme-rapide', 'starlightThemeRapide')
+    expect(result.importStatement).toBe("import starlightThemeRapide from 'starlight-theme-rapide'")
+    expect(result.pluginCall).toBe('starlightThemeRapide()')
+  })
+
+  it('parses named export', () => {
+    const result = buildThemeImport('starlight-ion-theme', '{ ion }')
+    expect(result.importStatement).toBe("import { ion } from 'starlight-ion-theme'")
+    expect(result.pluginCall).toBe('ion()')
+  })
+
+  it('includes options in plugin call', () => {
+    const result = buildThemeImport(
+      '@catppuccin/starlight',
+      'catppuccin',
+      '{"flavor":"mocha","accent":"blue"}',
+    )
+    expect(result.importStatement).toBe("import catppuccin from '@catppuccin/starlight'")
+    expect(result.pluginCall).toBe('catppuccin({"flavor":"mocha","accent":"blue"})')
+  })
+
+  it('handles named export with options', () => {
+    const result = buildThemeImport(
+      'starlight-ion-theme',
+      '{ ion }',
+      '{"footer":true}',
+    )
+    expect(result.importStatement).toBe("import { ion } from 'starlight-ion-theme'")
+    expect(result.pluginCall).toBe('ion({"footer":true})')
   })
 })

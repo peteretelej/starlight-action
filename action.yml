@@ -33,6 +33,15 @@ inputs:
   custom_css:
     description: Comma-separated list of CSS file paths to include as custom styles (e.g., "docs/styles/colors.css, docs/styles/layout.css")
     required: false
+  theme:
+    description: "Optional npm package name for a Starlight theme (e.g., starlight-theme-rapide, @catppuccin/starlight)"
+    required: false
+  theme_plugin:
+    description: "Export name for the theme plugin. Use { name } for named exports, or plain name for default exports (e.g., starlightThemeRapide or { ion })"
+    required: false
+  theme_options:
+    description: "Optional JSON object with theme configuration options"
+    required: false
 
 runs:
   using: node24

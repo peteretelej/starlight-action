@@ -42,11 +42,21 @@ const FIXTURES_DIR = path.join(__dirname, '..', '__tests__', 'fixtures', 'basic-
 const ASTRO_VERSION = '^5.0.0'
 const STARLIGHT_VERSION = '~0.34.0'
 
-function parseArgs(): { repoPath?: string; outputDir?: string; customCss?: string } {
+function parseArgs(): {
+  repoPath?: string
+  outputDir?: string
+  customCss?: string
+  theme?: string
+  themePlugin?: string
+  themeOptions?: string
+} {
   const args = process.argv.slice(2)
   let repoPath: string | undefined
   let outputDir: string | undefined
   let customCss: string | undefined
+  let theme: string | undefined
+  let themePlugin: string | undefined
+  let themeOptions: string | undefined
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--output' && args[i + 1]) {
@@ -55,12 +65,21 @@ function parseArgs(): { repoPath?: string; outputDir?: string; customCss?: strin
     } else if (args[i] === '--custom-css' && args[i + 1]) {
       customCss = args[i + 1]
       i++
+    } else if (args[i] === '--theme' && args[i + 1]) {
+      theme = args[i + 1]
+      i++
+    } else if (args[i] === '--theme-plugin' && args[i + 1]) {
+      themePlugin = args[i + 1]
+      i++
+    } else if (args[i] === '--theme-options' && args[i + 1]) {
+      themeOptions = args[i + 1]
+      i++
     } else if (!args[i].startsWith('-')) {
       repoPath = args[i]
     }
   }
 
-  return { repoPath, outputDir, customCss }
+  return { repoPath, outputDir, customCss, theme, themePlugin, themeOptions }
 }
 
 function run(cmd: string, cwd: string): void {
@@ -82,7 +101,7 @@ function copyDirSync(src: string, dest: string): void {
 }
 
 async function main(): Promise<void> {
-  const { repoPath: repoArg, outputDir, customCss } = parseArgs()
+  const { repoPath: repoArg, outputDir, customCss, theme, themePlugin, themeOptions } = parseArgs()
 
   let docsPath: string
   let workspaceDir: string
@@ -125,6 +144,7 @@ async function main(): Promise<void> {
         astro: ASTRO_VERSION,
         '@astrojs/starlight': STARLIGHT_VERSION,
         sharp: '^0.33.0',
+        ...(theme ? { [theme]: 'latest' } : {}),
       },
     }
     fs.writeFileSync(path.join(projectDir, 'package.json'), JSON.stringify(packageJson, null, 2))
@@ -191,6 +211,9 @@ export const collections = {
       base,
       site: outputDir ? 'http://localhost:3000' : 'https://example.github.io',
       customCssPaths,
+      theme,
+      themePlugin,
+      themeOptions,
     })
 
     // 9. Build

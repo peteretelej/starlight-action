@@ -11,6 +11,9 @@ export interface StarlightActionInputs {
   logo?: string
   configPath?: string
   customCssPaths?: string[]
+  theme?: string
+  themePlugin?: string
+  themeOptions?: string
 }
 
 /**
@@ -39,6 +42,33 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
     }
   }
   return result
+}
+
+/**
+ * Builds the import statement and plugin call for a Starlight theme package.
+ */
+export function buildThemeImport(
+  theme: string,
+  themePlugin: string,
+  themeOptions?: string,
+): { importStatement: string; pluginCall: string } {
+  const namedMatch = themePlugin.match(/^\{\s*(\w+)\s*\}$/)
+  let importStatement: string
+  let pluginName: string
+
+  if (namedMatch) {
+    pluginName = namedMatch[1]
+    importStatement = `import { ${pluginName} } from '${theme}'`
+  } else {
+    pluginName = themePlugin
+    importStatement = `import ${pluginName} from '${theme}'`
+  }
+
+  const pluginCall = themeOptions
+    ? `${pluginName}(${themeOptions})`
+    : `${pluginName}()`
+
+  return { importStatement, pluginCall }
 }
 
 /**
@@ -79,7 +109,12 @@ export function generateConfig(
     starlightConfig.customCss = [...inputs.customCssPaths, ...existingCss]
   }
 
-  const configContent = buildConfigFile(inputs.site, inputs.base, starlightConfig)
+  let themeImport: { importStatement: string; pluginCall: string } | undefined
+  if (inputs.theme && inputs.themePlugin) {
+    themeImport = buildThemeImport(inputs.theme, inputs.themePlugin, inputs.themeOptions)
+  }
+
+  const configContent = buildConfigFile(inputs.site, inputs.base, starlightConfig, themeImport)
   fs.writeFileSync(path.join(projectDir, 'astro.config.mjs'), configContent, 'utf-8')
   core.info(`Generated astro.config.mjs (site: ${inputs.site}, base: ${inputs.base})`)
 }
@@ -88,6 +123,7 @@ function buildConfigFile(
   site: string,
   base: string,
   starlightConfig: Record<string, unknown>,
+  themeImport?: { importStatement: string; pluginCall: string },
 ): string {
   const sidebarJson = formatSidebar(starlightConfig.sidebar as SidebarItem[])
 
@@ -104,8 +140,13 @@ function buildConfigFile(
     .join('\n')
   const extraSection = extraEntries ? `\n${extraEntries}` : ''
 
+  const themeImportLine = themeImport ? `\n${themeImport.importStatement}\n` : ''
+  const pluginsSection = themeImport
+    ? `\n      plugins: [${themeImport.pluginCall}],`
+    : ''
+
   return `import { defineConfig } from 'astro/config'
-import starlight from '@astrojs/starlight'
+import starlight from '@astrojs/starlight'${themeImportLine}
 
 export default defineConfig({
   site: '${site}',
@@ -113,7 +154,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: ${JSON.stringify(starlightConfig.title)},
-      description: ${JSON.stringify(starlightConfig.description)},${logoSection}
+      description: ${JSON.stringify(starlightConfig.description)},${logoSection}${pluginsSection}
       sidebar: ${sidebarJson},${extraSection}
     }),
   ],

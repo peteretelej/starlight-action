@@ -36,6 +36,9 @@ async function run(): Promise<void> {
     const baseInput = core.getInput('base') || `/${repoName}`
     const configInput = core.getInput('config') || undefined
     const customCssInput = core.getInput('custom_css') || undefined
+    const themeInput = core.getInput('theme') || undefined
+    const themePluginInput = core.getInput('theme_plugin') || undefined
+    const themeOptionsInput = core.getInput('theme_options') || undefined
 
     // Resolve paths
     const docsPath = path.resolve(workspaceDir, docsInput)
@@ -57,9 +60,23 @@ async function run(): Promise<void> {
       }
     }
 
+    if (themeInput && !themePluginInput) {
+      throw new Error('theme requires theme_plugin')
+    }
+    if (themePluginInput && !themeInput) {
+      throw new Error('theme_plugin requires theme')
+    }
+    if (themeOptionsInput) {
+      try {
+        JSON.parse(themeOptionsInput)
+      } catch {
+        throw new Error('theme_options must be valid JSON')
+      }
+    }
+
     // Step 1: Scaffold temporary Starlight project
     core.startGroup('Scaffold Starlight project')
-    const projectDir = await scaffoldProject()
+    const projectDir = await scaffoldProject(themeInput)
     core.endGroup()
 
     // Step 2: Copy documentation files
@@ -111,6 +128,9 @@ async function run(): Promise<void> {
       logo: logoInput,
       configPath,
       customCssPaths,
+      theme: themeInput,
+      themePlugin: themePluginInput,
+      themeOptions: themeOptionsInput,
     })
     core.endGroup()
 

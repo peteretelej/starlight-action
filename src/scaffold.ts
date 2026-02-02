@@ -12,7 +12,7 @@ const STARLIGHT_VERSION = '~0.34.0'
  * Scaffolds a temporary Starlight project with dependencies installed.
  * Returns the path to the project directory.
  */
-export async function scaffoldProject(): Promise<string> {
+export async function scaffoldProject(theme?: string): Promise<string> {
   const tmpBase = os.tmpdir()
   const projectDir = fs.mkdtempSync(path.join(tmpBase, 'starlight-action-'))
 
@@ -27,6 +27,7 @@ export async function scaffoldProject(): Promise<string> {
       astro: ASTRO_VERSION,
       '@astrojs/starlight': STARLIGHT_VERSION,
       sharp: '^0.33.0',
+      ...(theme ? { [theme]: 'latest' } : {}),
     },
   }
 
