@@ -135,8 +135,20 @@ Run the full end-to-end test locally (scaffolds a real Starlight project,
 builds it, and verifies HTML output):
 
 ```bash
+# Using built-in test fixtures
 npm run test:e2e
+
+# Using any local repo with a docs/ folder
+npm run test:e2e -- /path/to/your/repo
+
+# Generate the site and keep the output for preview
+npm run test:e2e -- /path/to/your/repo --output preview
+npx serve preview
 ```
+
+When given a repo path, the test will use its `docs/` folder and `README.md`
+(if present), matching how the action runs in CI. Use `--output` to save the
+built site for local inspection.
 
 Source lives in `src/` and is bundled to `dist/index.js` via `@vercel/ncc`.
 A pre-commit hook runs the build automatically, so `dist/` stays in sync with

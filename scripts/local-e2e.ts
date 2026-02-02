@@ -1,37 +1,111 @@
 /**
- * Local end-to-end test: scaffolds a Starlight project using the actual action
- * modules, copies fixture docs, and runs `astro build`.
- * Requires network for npm install.
+ * Local end-to-end test and site preview generator.
  *
- * Usage: npm run test:e2e
+ * Scaffolds a Starlight project using the actual action modules, copies docs,
+ * processes frontmatter, rewrites README links, generates config, and runs
+ * `astro build`. Requires network for npm install on first run.
+ *
+ * Usage:
+ *   npm run test:e2e                                    # test with fixtures
+ *   npm run test:e2e -- /path/to/repo                   # test with a real repo
+ *   npm run test:e2e -- /path/to/repo --output preview  # generate site to preview/
  */
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { execSync } from 'node:child_process'
-import { processAllFrontmatter } from '../src/frontmatter.js'
-import { copyDocs } from '../src/copy-docs.js'
-import { generateConfig } from '../src/config.js'
 
-// Stub @actions/core so our modules work outside Actions runtime
+// Stub @actions/core so action modules work outside the Actions runtime
 const noop = () => {}
 require.cache[require.resolve('@actions/core')] = {
   id: '@actions/core',
   filename: '@actions/core',
   loaded: true,
-  exports: { info: console.log, warning: console.warn, error: console.error, setFailed: noop, startGroup: noop, endGroup: noop, getInput: () => '' },
+  exports: {
+    info: console.log,
+    warning: console.warn,
+    error: console.error,
+    setFailed: noop,
+    startGroup: noop,
+    endGroup: noop,
+    getInput: () => '',
+  },
 } as any
+
+import { processAllFrontmatter } from '../src/frontmatter.js'
+import { copyDocs } from '../src/copy-docs.js'
+import { rewriteReadmeLinks } from '../src/readme-links.js'
+import { generateConfig } from '../src/config.js'
 
 const FIXTURES_DIR = path.join(__dirname, '..', '__tests__', 'fixtures', 'basic-docs')
 const ASTRO_VERSION = '^5.0.0'
 const STARLIGHT_VERSION = '~0.34.0'
+
+function parseArgs(): { repoPath?: string; outputDir?: string } {
+  const args = process.argv.slice(2)
+  let repoPath: string | undefined
+  let outputDir: string | undefined
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--output' && args[i + 1]) {
+      outputDir = path.resolve(args[i + 1])
+      i++
+    } else if (!args[i].startsWith('-')) {
+      repoPath = args[i]
+    }
+  }
+
+  return { repoPath, outputDir }
+}
 
 function run(cmd: string, cwd: string): void {
   console.log(`$ ${cmd}`)
   execSync(cmd, { cwd, stdio: 'inherit' })
 }
 
+function copyDirSync(src: string, dest: string): void {
+  fs.mkdirSync(dest, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name)
+    const destPath = path.join(dest, entry.name)
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath)
+    } else {
+      fs.copyFileSync(srcPath, destPath)
+    }
+  }
+}
+
 async function main(): Promise<void> {
+  const { repoPath: repoArg, outputDir } = parseArgs()
+
+  let docsPath: string
+  let workspaceDir: string
+  let useReadme = false
+  let repoName = 'test-repo'
+
+  if (repoArg) {
+    workspaceDir = path.resolve(repoArg)
+    docsPath = path.join(workspaceDir, 'docs')
+    if (!fs.existsSync(docsPath)) {
+      console.error(`No docs/ folder found in ${workspaceDir}`)
+      process.exit(1)
+    }
+    useReadme = fs.existsSync(path.join(workspaceDir, 'README.md'))
+    repoName = path.basename(workspaceDir)
+    console.log(`Using real repo: ${workspaceDir}`)
+    console.log(`  docs: ${docsPath}`)
+    console.log(`  readme: ${useReadme}`)
+  } else {
+    workspaceDir = path.join(__dirname, '..', '__tests__', 'fixtures')
+    docsPath = FIXTURES_DIR
+    console.log('Using built-in test fixtures')
+  }
+
+  if (outputDir) {
+    console.log(`  output: ${outputDir}`)
+  }
+
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'starlight-e2e-'))
   console.log(`\nProject dir: ${projectDir}\n`)
 
@@ -70,30 +144,43 @@ export const collections = {
     fs.writeFileSync(path.join(projectDir, 'src', 'content.config.ts'), contentConfig)
     console.log('Wrote content.config.ts')
 
-    // 5. Copy fixture docs (simulates what the action does)
-    const workspaceDir = path.join(__dirname, '..', '__tests__', 'fixtures')
+    // 5. Copy docs (mirrors the action's copyDocs step)
     copyDocs({
-      docsPath: FIXTURES_DIR,
+      docsPath,
       projectDir,
-      readme: false,
+      readme: useReadme,
       workspaceDir,
     })
 
     // 6. Process frontmatter (adds title from headings, required by schema)
     await processAllFrontmatter(contentDocsDir)
 
-    // 7. Generate astro config using action module
+    // Use base: / for local preview so assets resolve correctly with `serve`
+    const base = outputDir ? '/' : `/${repoName}`
+
+    // 7. Rewrite README links if readme was copied
+    if (useReadme) {
+      const indexPath = path.join(contentDocsDir, 'index.md')
+      if (fs.existsSync(indexPath)) {
+        const content = fs.readFileSync(indexPath, 'utf-8')
+        const rewritten = await rewriteReadmeLinks(content, 'docs', base)
+        fs.writeFileSync(indexPath, rewritten, 'utf-8')
+        console.log('Rewrote README links in index.md')
+      }
+    }
+
+    // 8. Generate astro config using action module
     generateConfig(projectDir, {
-      title: 'E2E Test',
+      title: repoArg ? repoName : 'E2E Test',
       description: 'Local end-to-end test',
-      base: '/test-repo',
-      site: 'https://example.github.io',
+      base,
+      site: outputDir ? 'http://localhost:3000' : 'https://example.github.io',
     })
 
-    // 8. Build
+    // 9. Build
     run('npx astro build', projectDir)
 
-    // 9. Verify output
+    // 10. Verify output
     const distDir = path.join(projectDir, 'dist')
     if (!fs.existsSync(distDir)) {
       console.error('\nFAILED: dist/ directory not created')
@@ -106,9 +193,20 @@ export const collections = {
       console.log(`  ${path.relative(distDir, f)}`)
     }
 
-    if (htmlFiles.length < 3) {
-      console.error(`\nFAILED: Expected at least 3 HTML pages, got ${htmlFiles.length}`)
+    const minPages = repoArg ? 2 : 3
+    if (htmlFiles.length < minPages) {
+      console.error(`\nFAILED: Expected at least ${minPages} HTML pages, got ${htmlFiles.length}`)
       process.exit(1)
+    }
+
+    // 11. Copy to output directory if requested
+    if (outputDir) {
+      if (fs.existsSync(outputDir)) {
+        fs.rmSync(outputDir, { recursive: true })
+      }
+      copyDirSync(distDir, outputDir)
+      console.log(`\nSite written to ${outputDir}`)
+      console.log(`Serve it with: npx serve ${outputDir}`)
     }
 
     console.log('\nPASSED: Local e2e test succeeded')

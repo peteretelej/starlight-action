@@ -21,7 +21,16 @@ export async function rewriteReadmeLinks(
   const docsPrefix = docsFolder.replace(/\/$/, '')
   const normalizedBase = basePath.replace(/\/$/, '')
 
-  const tree = unified().use(remarkParse).parse(content)
+  // Preserve frontmatter since remark stringify strips it
+  let frontmatter = ''
+  let body = content
+  const fmMatch = content.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n?)/)
+  if (fmMatch) {
+    frontmatter = fmMatch[1]
+    body = content.slice(fmMatch[0].length)
+  }
+
+  const tree = unified().use(remarkParse).parse(body)
 
   visit(tree, 'link', (node: Link) => {
     const url = node.url
@@ -49,7 +58,7 @@ export async function rewriteReadmeLinks(
   })
 
   const result = unified().use(remarkStringify).stringify(tree)
-  return result
+  return frontmatter + result
 }
 
 function escapeRegex(str: string): string {
