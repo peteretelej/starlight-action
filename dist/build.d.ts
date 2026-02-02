@@ -5,6 +5,7 @@
 export declare function buildSite(projectDir: string): Promise<string>;
 /**
  * Uploads the build output as a GitHub Pages artifact.
- * Creates a tar.gz archive matching the format expected by actions/deploy-pages.
+ * Creates an uncompressed tar archive matching the format expected by
+ * actions/upload-pages-artifact and actions/deploy-pages.
  */
 export declare function uploadArtifact(distDir: string): Promise<void>;

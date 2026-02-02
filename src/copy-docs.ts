@@ -6,8 +6,9 @@ import * as core from '@actions/core'
  * Recursively copies all .md files from source to destination,
  * preserving directory structure.
  */
-function copyMarkdownFiles(src: string, dest: string): void {
+function copyMarkdownFiles(src: string, dest: string): number {
   const entries = fs.readdirSync(src, { withFileTypes: true })
+  let count = 0
 
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name)
@@ -15,11 +16,13 @@ function copyMarkdownFiles(src: string, dest: string): void {
 
     if (entry.isDirectory()) {
       fs.mkdirSync(destPath, { recursive: true })
-      copyMarkdownFiles(srcPath, destPath)
+      count += copyMarkdownFiles(srcPath, destPath)
     } else if (entry.name.endsWith('.md')) {
       fs.copyFileSync(srcPath, destPath)
+      count++
     }
   }
+  return count
 }
 
 export interface CopyDocsOptions {
@@ -37,8 +40,11 @@ export function copyDocs(options: CopyDocsOptions): void {
   const contentDocsDir = path.join(options.projectDir, 'src', 'content', 'docs')
 
   // Copy all markdown files from docs folder
-  core.info(`Copying docs from ${options.docsPath} to ${contentDocsDir}`)
-  copyMarkdownFiles(options.docsPath, contentDocsDir)
+  const fileCount = copyMarkdownFiles(options.docsPath, contentDocsDir)
+  core.info(`Copied ${fileCount} markdown file(s) from docs folder`)
+  if (fileCount === 0) {
+    core.warning('No markdown files found in docs folder')
+  }
 
   // If readme: true, copy README.md as index page
   if (options.readme) {

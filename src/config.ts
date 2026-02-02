@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import * as core from '@actions/core'
 import { generateSidebar, type SidebarItem } from './sidebar.js'
 
 export interface StarlightActionInputs {
@@ -63,6 +64,7 @@ export function generateConfig(
 
   // Merge user-provided config if specified
   if (inputs.configPath) {
+    core.info(`Merging user config from ${inputs.configPath}`)
     const userConfigRaw = fs.readFileSync(inputs.configPath, 'utf-8')
     const userConfig = JSON.parse(userConfigRaw) as Record<string, unknown>
     starlightConfig = deepMerge(starlightConfig, userConfig) as Record<string, unknown>
@@ -70,6 +72,7 @@ export function generateConfig(
 
   const configContent = buildConfigFile(inputs.site, inputs.base, starlightConfig)
   fs.writeFileSync(path.join(projectDir, 'astro.config.mjs'), configContent, 'utf-8')
+  core.info(`Generated astro.config.mjs (site: ${inputs.site}, base: ${inputs.base})`)
 }
 
 function buildConfigFile(

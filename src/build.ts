@@ -27,23 +27,45 @@ export async function buildSite(projectDir: string): Promise<string> {
 
 /**
  * Uploads the build output as a GitHub Pages artifact.
- * Creates a tar.gz archive matching the format expected by actions/deploy-pages.
+ * Creates an uncompressed tar archive matching the format expected by
+ * actions/upload-pages-artifact and actions/deploy-pages.
  */
 export async function uploadArtifact(distDir: string): Promise<void> {
   core.info('Uploading build output as Pages artifact...')
 
-  // Create tar.gz archive matching what actions/deploy-pages expects
-  const tarFile = path.join(path.dirname(distDir), 'github-pages.tar.gz')
-  await exec.exec('tar', ['-czf', tarFile, '-C', distDir, '.'])
+  const runnerTemp = process.env.RUNNER_TEMP || path.join(path.dirname(distDir), '_tmp')
+  if (!fs.existsSync(runnerTemp)) {
+    fs.mkdirSync(runnerTemp, { recursive: true })
+  }
+
+  // Create uncompressed tar matching actions/upload-pages-artifact format
+  const tarFile = path.join(runnerTemp, 'artifact.tar')
+  await exec.exec('tar', [
+    '--dereference',
+    '--hard-dereference',
+    '--directory', distDir,
+    '-cvf', tarFile,
+    '--exclude=.git',
+    '--exclude=.github',
+    '.',
+  ])
+
+  const tarStats = fs.statSync(tarFile)
+  core.info(`Created artifact.tar (${(tarStats.size / 1024).toFixed(0)} KB)`)
 
   // Upload using @actions/artifact
   const artifactClient = new DefaultArtifactClient()
-  await artifactClient.uploadArtifact('github-pages', [tarFile], path.dirname(tarFile), {
-    compressionLevel: 0, // already compressed via tar -z
+  await artifactClient.uploadArtifact('github-pages', [tarFile], runnerTemp, {
+    compressionLevel: 0, // already an archive, no further compression needed
+    retentionDays: 1,
   })
 
   // Clean up the tar file
-  fs.unlinkSync(tarFile)
+  try {
+    fs.unlinkSync(tarFile)
+  } catch {
+    core.warning('Failed to clean up temporary tar file')
+  }
 
   core.info('Pages artifact uploaded successfully')
 }
