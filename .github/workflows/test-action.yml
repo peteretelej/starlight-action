@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
