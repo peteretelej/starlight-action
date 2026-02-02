@@ -59,6 +59,17 @@ export async function scaffoldProject(): Promise<string> {
     fs.mkdirSync(dir, { recursive: true })
   }
 
+  // Astro 5+ silently ignores content without an explicit collection definition.
+  // Without this file, docs build but produce 0 pages.
+  const contentConfig = `import { defineCollection } from 'astro:content'
+import { docsSchema } from '@astrojs/starlight/schema'
+
+export const collections = {
+  docs: defineCollection({ schema: docsSchema() }),
+}
+`
+  fs.writeFileSync(path.join(projectDir, 'src', 'content.config.ts'), contentConfig, 'utf-8')
+
   core.info('Starlight project scaffolded successfully')
   return projectDir
 }

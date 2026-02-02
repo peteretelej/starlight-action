@@ -121,10 +121,21 @@ Your config values take precedence on conflicts.
 
 ```bash
 npm install
+
 npm test
+
 npm run lint
+
 npm run check
+
 npm run build
+```
+
+Run the full end-to-end test locally (scaffolds a real Starlight project,
+builds it, and verifies HTML output):
+
+```bash
+npm run test:e2e
 ```
 
 Source lives in `src/` and is bundled to `dist/index.js` via `@vercel/ncc`.
