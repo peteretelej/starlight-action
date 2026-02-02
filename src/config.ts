@@ -10,6 +10,7 @@ export interface StarlightActionInputs {
   site: string
   logo?: string
   configPath?: string
+  customCssPaths?: string[]
 }
 
 /**
@@ -68,6 +69,14 @@ export function generateConfig(
     const userConfigRaw = fs.readFileSync(inputs.configPath, 'utf-8')
     const userConfig = JSON.parse(userConfigRaw) as Record<string, unknown>
     starlightConfig = deepMerge(starlightConfig, userConfig) as Record<string, unknown>
+  }
+
+  // Prepend custom CSS paths before any user-provided customCss
+  if (inputs.customCssPaths && inputs.customCssPaths.length > 0) {
+    const existingCss = Array.isArray(starlightConfig.customCss)
+      ? (starlightConfig.customCss as string[])
+      : []
+    starlightConfig.customCss = [...inputs.customCssPaths, ...existingCss]
   }
 
   const configContent = buildConfigFile(inputs.site, inputs.base, starlightConfig)

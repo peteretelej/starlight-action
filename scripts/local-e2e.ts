@@ -34,6 +34,7 @@ require.cache[require.resolve('@actions/core')] = {
 
 import { processAllFrontmatter } from '../src/frontmatter.js'
 import { copyDocs } from '../src/copy-docs.js'
+import { copyCss } from '../src/copy-css.js'
 import { rewriteReadmeLinks } from '../src/readme-links.js'
 import { generateConfig } from '../src/config.js'
 
@@ -41,21 +42,25 @@ const FIXTURES_DIR = path.join(__dirname, '..', '__tests__', 'fixtures', 'basic-
 const ASTRO_VERSION = '^5.0.0'
 const STARLIGHT_VERSION = '~0.34.0'
 
-function parseArgs(): { repoPath?: string; outputDir?: string } {
+function parseArgs(): { repoPath?: string; outputDir?: string; customCss?: string } {
   const args = process.argv.slice(2)
   let repoPath: string | undefined
   let outputDir: string | undefined
+  let customCss: string | undefined
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--output' && args[i + 1]) {
       outputDir = path.resolve(args[i + 1])
+      i++
+    } else if (args[i] === '--custom-css' && args[i + 1]) {
+      customCss = args[i + 1]
       i++
     } else if (!args[i].startsWith('-')) {
       repoPath = args[i]
     }
   }
 
-  return { repoPath, outputDir }
+  return { repoPath, outputDir, customCss }
 }
 
 function run(cmd: string, cwd: string): void {
@@ -77,7 +82,7 @@ function copyDirSync(src: string, dest: string): void {
 }
 
 async function main(): Promise<void> {
-  const { repoPath: repoArg, outputDir } = parseArgs()
+  const { repoPath: repoArg, outputDir, customCss } = parseArgs()
 
   let docsPath: string
   let workspaceDir: string
@@ -155,6 +160,16 @@ export const collections = {
     // 6. Process frontmatter (adds title from headings, required by schema)
     await processAllFrontmatter(contentDocsDir)
 
+    // 6b. Copy custom CSS files
+    const { configPaths: customCssPaths } = await copyCss({
+      customCssInput: customCss,
+      workspaceDir,
+      projectDir,
+    })
+    if (customCssPaths.length > 0) {
+      console.log(`Copied ${customCssPaths.length} custom CSS file(s)`)
+    }
+
     // Use base: / for local preview so assets resolve correctly with `serve`
     const base = outputDir ? '/' : `/${repoName}`
 
@@ -175,6 +190,7 @@ export const collections = {
       description: 'Local end-to-end test',
       base,
       site: outputDir ? 'http://localhost:3000' : 'https://example.github.io',
+      customCssPaths,
     })
 
     // 9. Build

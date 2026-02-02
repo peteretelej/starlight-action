@@ -6,6 +6,7 @@ import { copyDocs } from './copy-docs.js'
 import { processAllFrontmatter } from './frontmatter.js'
 import { rewriteReadmeLinks } from './readme-links.js'
 import { generateConfig } from './config.js'
+import { copyCss } from './copy-css.js'
 import { buildSite, uploadArtifact } from './build.js'
 
 function getGitHubContext(): { repoName: string; site: string } {
@@ -34,6 +35,7 @@ async function run(): Promise<void> {
     const readmeInput = core.getInput('readme') === 'true'
     const baseInput = core.getInput('base') || `/${repoName}`
     const configInput = core.getInput('config') || undefined
+    const customCssInput = core.getInput('custom_css') || undefined
 
     // Resolve paths
     const docsPath = path.resolve(workspaceDir, docsInput)
@@ -71,13 +73,22 @@ async function run(): Promise<void> {
     })
     core.endGroup()
 
-    // Step 3: Process frontmatter on all copied docs
+    // Step 3: Copy custom CSS files
+    core.startGroup('Copy custom CSS')
+    const { configPaths: customCssPaths } = await copyCss({
+      customCssInput,
+      workspaceDir,
+      projectDir,
+    })
+    core.endGroup()
+
+    // Step 4: Process frontmatter on all copied docs
     core.startGroup('Process frontmatter')
     const contentDocsDir = path.join(projectDir, 'src', 'content', 'docs')
     await processAllFrontmatter(contentDocsDir)
     core.endGroup()
 
-    // Step 4: Rewrite README links if readme is enabled
+    // Step 5: Rewrite README links if readme is enabled
     if (readmeInput) {
       core.startGroup('Rewrite README links')
       const indexPath = path.join(contentDocsDir, 'index.md')
@@ -90,7 +101,7 @@ async function run(): Promise<void> {
       core.endGroup()
     }
 
-    // Step 5: Generate Astro/Starlight config
+    // Step 6: Generate Astro/Starlight config
     core.startGroup('Generate config')
     generateConfig(projectDir, {
       title,
@@ -99,15 +110,16 @@ async function run(): Promise<void> {
       site,
       logo: logoInput,
       configPath,
+      customCssPaths,
     })
     core.endGroup()
 
-    // Step 6: Build the site
+    // Step 7: Build the site
     core.startGroup('Build site')
     const distDir = await buildSite(projectDir)
     core.endGroup()
 
-    // Step 7: Upload artifact
+    // Step 8: Upload artifact
     core.startGroup('Upload artifact')
     await uploadArtifact(distDir)
     core.endGroup()

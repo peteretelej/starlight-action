@@ -5,6 +5,7 @@ export interface StarlightActionInputs {
     site: string;
     logo?: string;
     configPath?: string;
+    customCssPaths?: string[];
 }
 /**
  * Generates the astro.config.mjs content and writes it to the project directory.

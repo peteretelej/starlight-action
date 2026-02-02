@@ -131,4 +131,96 @@ describe('generateConfig', () => {
     expect(content).toContain('User description')
     expect(content).not.toContain('Generated Title')
   })
+
+  it('generates config with customCssPaths', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      customCssPaths: ['./src/styles/colors.css'],
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain('customCss')
+    expect(content).toContain('./src/styles/colors.css')
+  })
+
+  it('generates config with multiple customCssPaths', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      customCssPaths: ['./src/styles/colors.css', './src/styles/layout.css'],
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain('customCss')
+    expect(content).toContain('./src/styles/colors.css')
+    expect(content).toContain('./src/styles/layout.css')
+  })
+
+  it('prepends customCssPaths before user-provided customCss', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const userConfigPath = path.join(projectDir, 'starlight.config.json')
+    fs.writeFileSync(
+      userConfigPath,
+      JSON.stringify({
+        customCss: ['./src/styles/user.css'],
+      }),
+      'utf-8',
+    )
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      configPath: userConfigPath,
+      customCssPaths: ['./src/styles/action.css'],
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain('customCss')
+    // Action CSS should come before user CSS
+    const actionIdx = content.indexOf('./src/styles/action.css')
+    const userIdx = content.indexOf('./src/styles/user.css')
+    expect(actionIdx).toBeLessThan(userIdx)
+  })
+
+  it('does not include customCss when no paths provided', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).not.toContain('customCss')
+  })
 })
