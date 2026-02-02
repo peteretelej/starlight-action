@@ -72,6 +72,10 @@ protection validation.
 | `readme` | No | `false` | Include README.md as the landing page with links resolved |
 | `base` | No | `/<repo-name>` | Base path override (set to `/` for custom domains) |
 | `config` | No | - | Path to a JSON file with partial Starlight config overrides |
+| `custom_css` | No | - | Comma-separated CSS file paths for custom styles |
+| `theme` | No | - | npm package name for a Starlight community theme |
+| `theme_plugin` | No | - | Theme plugin export name (required with `theme`) |
+| `theme_options` | No | - | JSON object with theme configuration options |
 
 ## How It Works
 
@@ -116,6 +120,78 @@ Use it in your workflow:
 
 The action's generated values (title, description, sidebar) serve as defaults.
 Your config values take precedence on conflicts.
+
+## Themes & Custom Styling
+
+### Custom CSS
+
+Override Starlight's default styles by pointing to your own CSS files:
+
+```yaml
+- uses: peteretelej/starlight-action@v1
+  with:
+    custom_css: ./docs/custom.css
+```
+
+Multiple files can be comma-separated:
+
+```yaml
+- uses: peteretelej/starlight-action@v1
+  with:
+    custom_css: ./docs/styles/colors.css, ./docs/styles/layout.css
+```
+
+See the [Starlight CSS & Styling guide](https://starlight.astro.build/guides/css-and-tailwind/) for available custom properties and selectors.
+
+### Community Themes
+
+Install a Starlight community theme by providing its npm package name and plugin export:
+
+| Input | Description |
+|-------|-------------|
+| `theme` | npm package name (e.g. `starlight-theme-rapide`) |
+| `theme_plugin` | Export name - use `{ name }` for named exports, plain name for default exports |
+| `theme_options` | Optional JSON object with theme configuration |
+
+Example using [Rapide](https://starlight-themes.vercel.app) (default export, no options):
+
+```yaml
+- uses: peteretelej/starlight-action@v1
+  with:
+    theme: starlight-theme-rapide
+    theme_plugin: starlightThemeRapide
+```
+
+Example using [Catppuccin](https://github.com/catppuccin/starlight) with options:
+
+```yaml
+- uses: peteretelej/starlight-action@v1
+  with:
+    theme: "@catppuccin/starlight"
+    theme_plugin: catppuccin
+    theme_options: '{"flavor":"mocha","accent":"blue"}'
+```
+
+Example using [Ion](https://starlight-themes.vercel.app) (named export) with custom CSS:
+
+```yaml
+- uses: peteretelej/starlight-action@v1
+  with:
+    theme: starlight-ion-theme
+    theme_plugin: "{ ion }"
+    theme_options: '{"footer":true}'
+    custom_css: ./docs/overrides.css
+```
+
+### Finding a Theme's Plugin Name
+
+Most themes on [Starlight Themes](https://starlight-themes.vercel.app) show their plugin name in the installation instructions:
+
+1. Visit the theme's page or npm listing
+2. Look for the "Installation" or "Usage" section
+3. Find the `import` line - the imported name is the `theme_plugin` value
+4. If the import uses `import { name }`, wrap it as `{ name }` in `theme_plugin`
+5. If the import uses `import name`, use the plain name
 
 ## Contributing
 
