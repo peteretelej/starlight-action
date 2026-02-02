@@ -1,0 +1,36 @@
+name: Starlight Action
+description: Build a Starlight documentation site from your Markdown files - zero config required
+author: peteretelej
+
+branding:
+  icon: book-open
+  color: purple
+
+inputs:
+  docs:
+    description: Path to the Markdown documentation folder
+    required: false
+    default: docs/
+  title:
+    description: Site title shown in header and browser tab (defaults to repo name)
+    required: false
+  description:
+    description: Site meta description (defaults to repo description)
+    required: false
+  logo:
+    description: Path to a logo file (SVG/PNG) to display in the header
+    required: false
+  readme:
+    description: If true, include README.md as the landing page and resolve its links
+    required: false
+    default: "false"
+  base:
+    description: Base path override (defaults to /<repo-name>, set to / for custom domains)
+    required: false
+  config:
+    description: Path to a partial Starlight config file (JSON) that gets merged with the generated config
+    required: false
+
+runs:
+  using: node24
+  main: dist/index.js
