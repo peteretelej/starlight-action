@@ -1,6 +1,10 @@
 # Starlight Action
 
-Turn a `docs/` folder of Markdown files into a [Starlight](https://starlight.astro.build/) documentation site - zero config required.
+Turn a `docs/` folder of Markdown files into an [Astro Starlight](https://starlight.astro.build/) documentation site with support for [Starlight themes](https://starlight-themes.vercel.app) - zero config required.
+
+## Demo
+
+**[See it live](https://peteretelej.github.io/windows-cli-tools/)** - a documentation website built for [windows-cli-tools](https://github.com/peteretelej/windows-cli-tools) entirely using this Starlight Action, with the Catppuccin theme. No manual Astro setup, no config files, just a [single workflow file](https://github.com/peteretelej/windows-cli-tools/blob/main/.github/workflows/docs.yml).
 
 ## Quick Start
 
