@@ -1,6 +1,6 @@
 # Starlight Action
 
-Turn a `docs/` folder of Markdown files into an [Astro Starlight](https://starlight.astro.build/) documentation site with support for [Starlight themes](https://starlight-themes.vercel.app) - zero config required.
+Turn a `docs/` folder of Markdown files into an [Astro Starlight](https://starlight.astro.build/) documentation site with support for [Starlight themes](https://starlight.astro.build/resources/themes/) - zero config required.
 
 ## Demo
 
@@ -157,7 +157,7 @@ Install a Starlight community theme by providing its npm package name and plugin
 | `theme_plugin` | Export name - use `{ name }` for named exports, plain name for default exports |
 | `theme_options` | Optional JSON object with theme configuration |
 
-Example using [Rapide](https://starlight-themes.vercel.app) (default export, no options):
+Example using [Rapide](https://starlight-theme-rapide.vercel.app/getting-started/) (default export, no options):
 
 ```yaml
 - uses: peteretelej/starlight-action@v1
@@ -166,7 +166,7 @@ Example using [Rapide](https://starlight-themes.vercel.app) (default export, no 
     theme_plugin: starlightThemeRapide
 ```
 
-Example using [Catppuccin](https://github.com/catppuccin/starlight) with options:
+Example using [Catppuccin](https://starlight.catppuccin.com/getting-started/) with options:
 
 ```yaml
 - uses: peteretelej/starlight-action@v1
@@ -176,7 +176,7 @@ Example using [Catppuccin](https://github.com/catppuccin/starlight) with options
     theme_options: '{"flavor":"mocha","accent":"blue"}'
 ```
 
-Example using [Ion](https://starlight-themes.vercel.app) (named export) with custom CSS:
+Example using [Ion](https://louisescher.github.io/starlight-ion-theme/getting-started/) (named export) with custom CSS:
 
 ```yaml
 - uses: peteretelej/starlight-action@v1
@@ -189,7 +189,7 @@ Example using [Ion](https://starlight-themes.vercel.app) (named export) with cus
 
 ### Finding a Theme's Plugin Name
 
-Most themes on [Starlight Themes](https://starlight-themes.vercel.app) show their plugin name in the installation instructions:
+Most themes on [Starlight Themes](https://starlight.astro.build/resources/themes/) show their plugin name in the installation instructions:
 
 1. Visit the theme's page or npm listing
 2. Look for the "Installation" or "Usage" section
