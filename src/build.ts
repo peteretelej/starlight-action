@@ -53,8 +53,16 @@ export async function uploadArtifact(distDir: string): Promise<void> {
   const tarStats = fs.statSync(tarFile)
   core.info(`Created artifact.tar (${(tarStats.size / 1024).toFixed(0)} KB)`)
 
-  // Upload using @actions/artifact
+  // Remove any existing artifact from a prior attempt to avoid
+  // "Multiple artifacts named github-pages" errors on re-runs.
   const artifactClient = new DefaultArtifactClient()
+  try {
+    await artifactClient.deleteArtifact('github-pages')
+    core.info('Deleted existing github-pages artifact from previous attempt')
+  } catch {
+    // No prior artifact exists, nothing to clean up
+  }
+
   await artifactClient.uploadArtifact('github-pages', [tarFile], runnerTemp, {
     compressionLevel: 0, // already an archive, no further compression needed
     retentionDays: 1,

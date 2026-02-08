@@ -1,5 +1,9 @@
 # Starlight Action
 
+[![CI](https://github.com/peteretelej/starlight-action/actions/workflows/ci.yml/badge.svg)](https://github.com/peteretelej/starlight-action/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/peteretelej/starlight-action)](https://github.com/peteretelej/starlight-action/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Turn a `docs/` folder of Markdown files into an [Astro Starlight](https://starlight.astro.build/) documentation site with support for [Starlight themes](https://starlight.astro.build/resources/themes/) - zero config required.
 
 ## Demo
