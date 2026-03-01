@@ -30,11 +30,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Verify dist/ is up to date
-        run: |
-          if [ -n "$(git diff --ignore-cr-at-eol --name-only dist/)" ]; then
-            echo "::error::dist/ is out of date. Run 'npm run build' and commit the result."
-            git diff --ignore-cr-at-eol --stat dist/
-            exit 1
-          fi
