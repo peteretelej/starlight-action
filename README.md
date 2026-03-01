@@ -1,10 +1,12 @@
 # Starlight Action
 
+**Ship a documentation site from your repo's `docs/` folder — no Astro setup, no config files, just Markdown.**
+
 [![CI](https://github.com/peteretelej/starlight-action/actions/workflows/ci.yml/badge.svg)](https://github.com/peteretelej/starlight-action/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/peteretelej/starlight-action)](https://github.com/peteretelej/starlight-action/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Turn a `docs/` folder of Markdown files into an [Astro Starlight](https://starlight.astro.build/) documentation site with support for [Starlight themes](https://starlight.astro.build/resources/themes/) - zero config required.
+A GitHub Action that builds your Markdown into a full [Astro Starlight](https://starlight.astro.build/) site with sidebar generation, frontmatter inference, **[support for community themes](https://starlight.astro.build/resources/themes/)**, custom CSS, and GitHub Pages deployment. All in one workflow file.
 
 ## Demo
 
