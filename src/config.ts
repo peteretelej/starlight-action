@@ -96,9 +96,9 @@ export function generateConfig(
 
   // Add GitHub social link by default (derived from GITHUB_REPOSITORY)
   if (inputs.githubUrl) {
-    starlightConfig.social = {
-      github: inputs.githubUrl,
-    }
+    starlightConfig.social = [
+      { label: 'GitHub', icon: 'github', link: inputs.githubUrl },
+    ]
   }
 
   // Merge user-provided config if specified

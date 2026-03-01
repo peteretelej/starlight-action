@@ -80,7 +80,7 @@ describe('generateConfig', () => {
       userConfigPath,
       JSON.stringify({
         editLink: { baseUrl: 'https://github.com/user/repo/edit/main/' },
-        social: { github: 'https://github.com/user/repo' },
+        social: [{ label: 'GitHub', icon: 'github', link: 'https://github.com/user/repo' }],
       }),
       'utf-8',
     )
@@ -353,7 +353,10 @@ describe('generateConfig', () => {
     fs.writeFileSync(
       userConfigPath,
       JSON.stringify({
-        social: { github: 'https://github.com/other/repo', discord: 'https://discord.gg/abc' },
+        social: [
+          { label: 'GitHub', icon: 'github', link: 'https://github.com/other/repo' },
+          { label: 'Discord', icon: 'discord', link: 'https://discord.gg/abc' },
+        ],
       }),
       'utf-8',
     )
@@ -370,7 +373,7 @@ describe('generateConfig', () => {
     generateConfig(projectDir, inputs)
 
     const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
-    // User config should win via deep merge
+    // User config should win via deep merge (arrays are replaced)
     expect(content).toContain('https://github.com/other/repo')
     expect(content).toContain('discord')
     expect(content).not.toContain('https://github.com/user/repo')
