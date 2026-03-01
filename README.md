@@ -12,16 +12,8 @@ Turn a `docs/` folder of Markdown files into an [Astro Starlight](https://starli
 
 ## Quick Start
 
-Add this step to any workflow:
-
-```yaml
-- uses: peteretelej/starlight-action@v1
-```
-
 The action reads Markdown from `docs/`, builds a Starlight site, and uploads
 a GitHub Pages artifact. Pair it with `actions/deploy-pages` to publish.
-
-## Deploy to GitHub Pages
 
 ### 1. Enable Pages
 

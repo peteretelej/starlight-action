@@ -104,4 +104,97 @@ describe('integration: full pipeline', () => {
     expect(configContent).toContain('Getting Started')
     expect(configContent).toContain("import starlight from '@astrojs/starlight'")
   })
+
+  it('copies image and asset files alongside markdown', () => {
+    // Create a fake 1x1 PNG (minimal valid PNG)
+    const fakePng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    )
+
+    const workspace = createTempDir({
+      'docs/guide.md': '# Guide\n\n![Logo](./images/logo.png)\n',
+      'docs/nested/page.md': '# Nested\n\n![Diagram](../diagrams/arch.svg)\n',
+    })
+
+    // Write binary image files
+    fs.mkdirSync(path.join(workspace, 'docs', 'images'), { recursive: true })
+    fs.writeFileSync(path.join(workspace, 'docs', 'images', 'logo.png'), fakePng)
+    fs.mkdirSync(path.join(workspace, 'docs', 'diagrams'), { recursive: true })
+    fs.writeFileSync(path.join(workspace, 'docs', 'diagrams', 'arch.svg'), '<svg></svg>')
+
+    // Simulate scaffolded project
+    const projectDir = createTempDir({})
+    const contentDocsDir = path.join(projectDir, 'src', 'content', 'docs')
+    fs.mkdirSync(contentDocsDir, { recursive: true })
+    fs.mkdirSync(path.join(projectDir, 'public'), { recursive: true })
+
+    copyDocs({
+      docsPath: path.join(workspace, 'docs'),
+      projectDir,
+      readme: false,
+      workspaceDir: workspace,
+    })
+
+    // Markdown files should be copied
+    expect(fs.existsSync(path.join(contentDocsDir, 'guide.md'))).toBe(true)
+    expect(fs.existsSync(path.join(contentDocsDir, 'nested', 'page.md'))).toBe(true)
+
+    // Image/asset files should also be copied
+    expect(fs.existsSync(path.join(contentDocsDir, 'images', 'logo.png'))).toBe(true)
+    expect(fs.existsSync(path.join(contentDocsDir, 'diagrams', 'arch.svg'))).toBe(true)
+
+    // Verify binary content is preserved
+    const copiedPng = fs.readFileSync(path.join(contentDocsDir, 'images', 'logo.png'))
+    expect(copiedPng.equals(fakePng)).toBe(true)
+  })
+
+  it('rewrites image paths in README that reference docs folder', async () => {
+    const fakePng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    )
+
+    const workspace = createTempDir({
+      'docs/guide.md': '# Guide\n\nSome guide content.\n',
+      'README.md':
+        '# My Project\n\n![Screenshot](docs/images/winpane.png)\n\nSee the [guide](docs/guide.md).\n',
+    })
+
+    // Write image file
+    fs.mkdirSync(path.join(workspace, 'docs', 'images'), { recursive: true })
+    fs.writeFileSync(path.join(workspace, 'docs', 'images', 'winpane.png'), fakePng)
+
+    // Simulate scaffolded project
+    const projectDir = createTempDir({})
+    const contentDocsDir = path.join(projectDir, 'src', 'content', 'docs')
+    fs.mkdirSync(contentDocsDir, { recursive: true })
+    fs.mkdirSync(path.join(projectDir, 'public'), { recursive: true })
+
+    // Step 1: Copy docs (including images)
+    copyDocs({
+      docsPath: path.join(workspace, 'docs'),
+      projectDir,
+      readme: true,
+      workspaceDir: workspace,
+    })
+
+    // Image should be copied
+    expect(fs.existsSync(path.join(contentDocsDir, 'images', 'winpane.png'))).toBe(true)
+
+    // Step 2: Rewrite README links (including image paths)
+    const indexPath = path.join(contentDocsDir, 'index.md')
+    const indexContent = fs.readFileSync(indexPath, 'utf-8')
+    const rewritten = await rewriteReadmeLinks(indexContent, 'docs', '/my-repo')
+    fs.writeFileSync(indexPath, rewritten, 'utf-8')
+
+    const finalIndex = fs.readFileSync(indexPath, 'utf-8')
+
+    // Image path should be rewritten from docs/images/winpane.png to ./images/winpane.png
+    expect(finalIndex).toContain('./images/winpane.png')
+    expect(finalIndex).not.toContain('docs/images/winpane.png')
+
+    // Link should also be rewritten
+    expect(finalIndex).toContain('/my-repo/guide/')
+  })
 })

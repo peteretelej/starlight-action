@@ -9,6 +9,7 @@ export interface StarlightActionInputs {
     theme?: string;
     themePlugin?: string;
     themeOptions?: string;
+    githubUrl?: string;
 }
 /**
  * Builds the import statement and plugin call for a Starlight theme package.

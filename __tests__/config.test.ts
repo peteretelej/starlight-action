@@ -305,6 +305,76 @@ describe('generateConfig', () => {
     const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
     expect(content).not.toContain('plugins')
   })
+
+  it('includes GitHub social link when githubUrl is provided', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      githubUrl: 'https://github.com/user/repo',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).toContain('social')
+    expect(content).toContain('https://github.com/user/repo')
+  })
+
+  it('does not include social when githubUrl is empty', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    expect(content).not.toContain('social')
+  })
+
+  it('user config can override social link', () => {
+    const projectDir = setupProjectDir({
+      'guide.md': '---\ntitle: "Guide"\n---\n\nContent.\n',
+    })
+
+    const userConfigPath = path.join(projectDir, 'starlight.config.json')
+    fs.writeFileSync(
+      userConfigPath,
+      JSON.stringify({
+        social: { github: 'https://github.com/other/repo', discord: 'https://discord.gg/abc' },
+      }),
+      'utf-8',
+    )
+
+    const inputs: StarlightActionInputs = {
+      title: 'My Docs',
+      description: 'Docs',
+      base: '/repo',
+      site: 'https://user.github.io',
+      githubUrl: 'https://github.com/user/repo',
+      configPath: userConfigPath,
+    }
+
+    generateConfig(projectDir, inputs)
+
+    const content = fs.readFileSync(path.join(projectDir, 'astro.config.mjs'), 'utf-8')
+    // User config should win via deep merge
+    expect(content).toContain('https://github.com/other/repo')
+    expect(content).toContain('discord')
+    expect(content).not.toContain('https://github.com/user/repo')
+  })
 })
 
 describe('buildThemeImport', () => {

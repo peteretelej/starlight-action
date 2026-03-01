@@ -9,7 +9,7 @@ import { generateConfig } from './config.js'
 import { copyCss } from './copy-css.js'
 import { buildSite, uploadArtifact } from './build.js'
 
-function getGitHubContext(): { repoName: string; site: string } {
+function getGitHubContext(): { repoName: string; site: string; githubUrl: string } {
   const repository = process.env.GITHUB_REPOSITORY ?? ''
   const [owner, repo] = repository.split('/')
   const repoName = repo ?? 'docs'
@@ -17,7 +17,10 @@ function getGitHubContext(): { repoName: string; site: string } {
   // Construct site URL from GitHub Pages convention
   const site = owner ? `https://${owner}.github.io` : 'https://example.github.io'
 
-  return { repoName, site }
+  // GitHub repo URL for social link in navbar
+  const githubUrl = repository ? `https://github.com/${repository}` : ''
+
+  return { repoName, site, githubUrl }
 }
 
 async function run(): Promise<void> {
@@ -25,7 +28,7 @@ async function run(): Promise<void> {
     core.info('Starlight Action starting...')
 
     const workspaceDir = process.env.GITHUB_WORKSPACE ?? process.cwd()
-    const { repoName, site } = getGitHubContext()
+    const { repoName, site, githubUrl } = getGitHubContext()
 
     // Read inputs
     const docsInput = core.getInput('docs') || 'docs/'
@@ -131,6 +134,7 @@ async function run(): Promise<void> {
       theme: themeInput,
       themePlugin: themePluginInput,
       themeOptions: themeOptionsInput,
+      githubUrl,
     })
     core.endGroup()
 

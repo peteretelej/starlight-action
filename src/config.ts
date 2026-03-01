@@ -14,6 +14,7 @@ export interface StarlightActionInputs {
   theme?: string
   themePlugin?: string
   themeOptions?: string
+  githubUrl?: string
 }
 
 /**
@@ -93,6 +94,13 @@ export function generateConfig(
     }
   }
 
+  // Add GitHub social link by default (derived from GITHUB_REPOSITORY)
+  if (inputs.githubUrl) {
+    starlightConfig.social = {
+      github: inputs.githubUrl,
+    }
+  }
+
   // Merge user-provided config if specified
   if (inputs.configPath) {
     core.info(`Merging user config from ${inputs.configPath}`)
@@ -132,8 +140,12 @@ function buildConfigFile(
     : ''
 
   // Build extra config entries from user merge (excluding title, description, sidebar, logo)
+  const socialSection = starlightConfig.social
+    ? `\n    social: ${JSON.stringify(starlightConfig.social)},`
+    : ''
+
   const extraKeys = Object.keys(starlightConfig).filter(
-    (k) => !['title', 'description', 'sidebar', 'logo'].includes(k),
+    (k) => !['title', 'description', 'sidebar', 'logo', 'social'].includes(k),
   )
   const extraEntries = extraKeys
     .map((k) => `    ${k}: ${JSON.stringify(starlightConfig[k])},`)
@@ -154,7 +166,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: ${JSON.stringify(starlightConfig.title)},
-      description: ${JSON.stringify(starlightConfig.description)},${logoSection}${pluginsSection}
+      description: ${JSON.stringify(starlightConfig.description)},${logoSection}${socialSection}${pluginsSection}
       sidebar: ${sidebarJson},${extraSection}
     }),
   ],

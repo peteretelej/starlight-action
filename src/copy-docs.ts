@@ -2,13 +2,18 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as core from '@actions/core'
 
+interface CopyResult {
+  markdown: number
+  assets: number
+}
+
 /**
- * Recursively copies all .md files from source to destination,
- * preserving directory structure.
+ * Recursively copies all documentation files (markdown and assets like images)
+ * from source to destination, preserving directory structure.
  */
-function copyMarkdownFiles(src: string, dest: string): number {
+function copyDocsFiles(src: string, dest: string): CopyResult {
   const entries = fs.readdirSync(src, { withFileTypes: true })
-  let count = 0
+  const result: CopyResult = { markdown: 0, assets: 0 }
 
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name)
@@ -16,13 +21,19 @@ function copyMarkdownFiles(src: string, dest: string): number {
 
     if (entry.isDirectory()) {
       fs.mkdirSync(destPath, { recursive: true })
-      count += copyMarkdownFiles(srcPath, destPath)
+      const sub = copyDocsFiles(srcPath, destPath)
+      result.markdown += sub.markdown
+      result.assets += sub.assets
     } else if (entry.name.endsWith('.md')) {
       fs.copyFileSync(srcPath, destPath)
-      count++
+      result.markdown++
+    } else {
+      // Copy non-markdown assets (images, etc.) to preserve references
+      fs.copyFileSync(srcPath, destPath)
+      result.assets++
     }
   }
-  return count
+  return result
 }
 
 export interface CopyDocsOptions {
@@ -39,10 +50,13 @@ export interface CopyDocsOptions {
 export function copyDocs(options: CopyDocsOptions): void {
   const contentDocsDir = path.join(options.projectDir, 'src', 'content', 'docs')
 
-  // Copy all markdown files from docs folder
-  const fileCount = copyMarkdownFiles(options.docsPath, contentDocsDir)
-  core.info(`Copied ${fileCount} markdown file(s) from docs folder`)
-  if (fileCount === 0) {
+  // Copy all documentation files (markdown + assets like images)
+  const copyResult = copyDocsFiles(options.docsPath, contentDocsDir)
+  core.info(`Copied ${copyResult.markdown} markdown file(s) from docs folder`)
+  if (copyResult.assets > 0) {
+    core.info(`Copied ${copyResult.assets} asset file(s) (images, etc.) from docs folder`)
+  }
+  if (copyResult.markdown === 0) {
     core.warning('No markdown files found in docs folder')
   }
 
