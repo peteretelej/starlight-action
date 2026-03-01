@@ -103,7 +103,7 @@ Example `.starlight.config.json`:
 ```json
 {
   "social": [
-    { "label": "GitHub", "icon": "github", "link": "https://github.com/user/repo" }
+    { "label": "GitHub", "icon": "github", "href": "https://github.com/user/repo" }
   ],
   "head": [
     { "tag": "meta", "attrs": { "name": "og:image", "content": "/social.png" } }

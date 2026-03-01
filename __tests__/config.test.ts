@@ -80,7 +80,7 @@ describe('generateConfig', () => {
       userConfigPath,
       JSON.stringify({
         editLink: { baseUrl: 'https://github.com/user/repo/edit/main/' },
-        social: [{ label: 'GitHub', icon: 'github', link: 'https://github.com/user/repo' }],
+        social: [{ label: 'GitHub', icon: 'github', href: 'https://github.com/user/repo' }],
       }),
       'utf-8',
     )
@@ -354,8 +354,8 @@ describe('generateConfig', () => {
       userConfigPath,
       JSON.stringify({
         social: [
-          { label: 'GitHub', icon: 'github', link: 'https://github.com/other/repo' },
-          { label: 'Discord', icon: 'discord', link: 'https://discord.gg/abc' },
+          { label: 'GitHub', icon: 'github', href: 'https://github.com/other/repo' },
+          { label: 'Discord', icon: 'discord', href: 'https://discord.gg/abc' },
         ],
       }),
       'utf-8',
