@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "scripts": {
     "prepare": "git config core.hooksPath .hooks",
-    "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
+    "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt --external encoding",
+    "postbuild": "node -e \"const fs=require('fs'),p=require('path');for(const f of fs.readdirSync('dist')){const fp=p.join('dist',f);if(fs.statSync(fp).isFile()){const c=fs.readFileSync(fp);if(!c.includes(13))continue;fs.writeFileSync(fp,Buffer.from(c.toString('binary').replace(/\\r/g,''),'binary'))}}\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src/",
