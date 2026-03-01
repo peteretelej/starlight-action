@@ -30,3 +30,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # dist/ freshness check disabled — ncc produces different output on
+      # Windows vs Linux, making cross-platform verification impossible.
+      # See: https://github.com/vercel/ncc/issues/831
+      # The pre-commit hook (.hooks/pre-commit) rebuilds dist/ on source changes.
+      # - name: Verify dist/ is up to date
+      #   run: |
+      #     if [ -n "$(git diff --name-only dist/)" ]; then
+      #       echo "::error::dist/ is out of date. Run 'npm run build' and commit the result."
+      #       git diff --stat dist/
+      #       exit 1
+      #     fi
