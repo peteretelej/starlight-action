@@ -5,18 +5,27 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import { restoreNpmCache, saveNpmCache } from './cache'
 
-const ASTRO_VERSION = '^5.0.0'
-const STARLIGHT_VERSION = '~0.34.0'
+const ASTRO_VERSION = '^6.0.0'
+const STARLIGHT_VERSION = '~0.38.0'
+
+export interface ScaffoldOptions {
+  astroVersion?: string
+  starlightVersion?: string
+}
 
 /**
  * Scaffolds a temporary Starlight project with dependencies installed.
  * Returns the path to the project directory.
  */
-export async function scaffoldProject(theme?: string): Promise<string> {
+export async function scaffoldProject(theme?: string, options?: ScaffoldOptions): Promise<string> {
+  const astroVersion = options?.astroVersion ?? ASTRO_VERSION
+  const starlightVersion = options?.starlightVersion ?? STARLIGHT_VERSION
+
   const tmpBase = os.tmpdir()
   const projectDir = fs.mkdtempSync(path.join(tmpBase, 'starlight-action-'))
 
   core.info(`Scaffolding Starlight project in ${projectDir}`)
+  core.info(`Using astro@${astroVersion}, @astrojs/starlight@${starlightVersion}`)
 
   const packageJson = {
     name: 'starlight-docs',
@@ -24,8 +33,8 @@ export async function scaffoldProject(theme?: string): Promise<string> {
     private: true,
     type: 'module',
     dependencies: {
-      astro: ASTRO_VERSION,
-      '@astrojs/starlight': STARLIGHT_VERSION,
+      astro: astroVersion,
+      '@astrojs/starlight': starlightVersion,
       sharp: '^0.33.0',
       ...(theme ? { [theme]: 'latest' } : {}),
     },
@@ -52,10 +61,7 @@ export async function scaffoldProject(theme?: string): Promise<string> {
   }
 
   // Create required directory structure
-  const dirs = [
-    path.join(projectDir, 'src', 'content', 'docs'),
-    path.join(projectDir, 'public'),
-  ]
+  const dirs = [path.join(projectDir, 'src', 'content', 'docs'), path.join(projectDir, 'public')]
   for (const dir of dirs) {
     fs.mkdirSync(dir, { recursive: true })
   }

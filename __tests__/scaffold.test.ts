@@ -72,4 +72,56 @@ describe('scaffoldProject', () => {
 
     fs.rmSync(projectDir, { recursive: true, force: true })
   })
+
+  it('uses default versions when no overrides provided', async () => {
+    const projectDir = await scaffoldProject()
+
+    const pkgPath = path.join(projectDir, 'package.json')
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+
+    expect(pkg.dependencies.astro).toBe('^6.0.0')
+    expect(pkg.dependencies['@astrojs/starlight']).toBe('~0.38.0')
+
+    fs.rmSync(projectDir, { recursive: true, force: true })
+  })
+
+  it('respects astro_version override', async () => {
+    const projectDir = await scaffoldProject(undefined, { astroVersion: '~5.12.0' })
+
+    const pkgPath = path.join(projectDir, 'package.json')
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+
+    expect(pkg.dependencies.astro).toBe('~5.12.0')
+    expect(pkg.dependencies['@astrojs/starlight']).toBe('~0.38.0')
+
+    fs.rmSync(projectDir, { recursive: true, force: true })
+  })
+
+  it('respects starlight_version override', async () => {
+    const projectDir = await scaffoldProject(undefined, { starlightVersion: '~0.34.0' })
+
+    const pkgPath = path.join(projectDir, 'package.json')
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+
+    expect(pkg.dependencies.astro).toBe('^6.0.0')
+    expect(pkg.dependencies['@astrojs/starlight']).toBe('~0.34.0')
+
+    fs.rmSync(projectDir, { recursive: true, force: true })
+  })
+
+  it('version overrides work alongside theme', async () => {
+    const projectDir = await scaffoldProject('starlight-theme-rapide', {
+      astroVersion: '^6.1.0',
+      starlightVersion: '~0.38.1',
+    })
+
+    const pkgPath = path.join(projectDir, 'package.json')
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+
+    expect(pkg.dependencies.astro).toBe('^6.1.0')
+    expect(pkg.dependencies['@astrojs/starlight']).toBe('~0.38.1')
+    expect(pkg.dependencies['starlight-theme-rapide']).toBe('latest')
+
+    fs.rmSync(projectDir, { recursive: true, force: true })
+  })
 })
