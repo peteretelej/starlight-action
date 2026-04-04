@@ -39,8 +39,8 @@ import { rewriteReadmeLinks } from '../src/readme-links.js'
 import { generateConfig } from '../src/config.js'
 
 const FIXTURES_DIR = path.join(__dirname, '..', '__tests__', 'fixtures', 'basic-docs')
-const ASTRO_VERSION = '^5.0.0'
-const STARLIGHT_VERSION = '~0.34.0'
+const ASTRO_VERSION = '^6.0.0'
+const STARLIGHT_VERSION = '~0.38.0'
 
 function parseArgs(): {
   repoPath?: string

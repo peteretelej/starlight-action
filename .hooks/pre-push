@@ -1,0 +1,37 @@
+#!/bin/sh
+# Pre-push hook: run lint, typecheck, tests, and build before pushing
+
+echo "Running pre-push checks..."
+
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "Lint failed. Push aborted."
+  exit 1
+fi
+
+npm run check
+if [ $? -ne 0 ]; then
+  echo "Typecheck failed. Push aborted."
+  exit 1
+fi
+
+npm test
+if [ $? -ne 0 ]; then
+  echo "Tests failed. Push aborted."
+  exit 1
+fi
+
+npm run build
+if [ $? -ne 0 ]; then
+  echo "Build failed. Push aborted."
+  exit 1
+fi
+
+# Stage rebuilt dist/ if source changed (mirrors pre-commit behavior)
+if [ -n "$(git diff --name-only -- dist/)" ]; then
+  echo "dist/ was rebuilt. Amending commit to include updated dist/..."
+  git add dist/
+  git commit --amend --no-edit --no-verify
+fi
+
+echo "All pre-push checks passed."

@@ -87351,6 +87351,12 @@ function getGitHubContext() {
 async function run() {
     try {
         core.info('Starlight Action starting...');
+        // Ensure subprocesses (npm, npx) use the same Node.js version as the
+        // action runtime. GitHub's `using: node24` provides a Node 24 binary,
+        // but the runner's default PATH points to Node 20 which Astro 6 rejects.
+        const actionNodeDir = path.dirname(process.execPath);
+        core.addPath(actionNodeDir);
+        core.info(`Using Node.js from ${actionNodeDir}`);
         const workspaceDir = process.env.GITHUB_WORKSPACE ?? process.cwd();
         const { repoName, site, githubUrl } = getGitHubContext();
         // Read inputs
