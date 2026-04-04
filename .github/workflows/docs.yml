@@ -1,0 +1,42 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+    paths: [docs/**, README.md]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # This workflow dogfoods the action against its own docs/ folder.
+      # The options below are intentionally verbose to showcase available
+      # customization; most projects only need docs + title.
+      - uses: ./
+        with:
+          docs: docs/
+          title: Starlight Action
+          description: Build a Starlight docs site from Markdown - zero config required
+          readme: true
+          config: .starlight.config.json
+          theme: '@catppuccin/starlight'
+          theme_plugin: catppuccin
+          theme_options: '{"flavor":"mocha","accent":"lavender"}'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

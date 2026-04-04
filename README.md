@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/peteretelej/starlight-action/actions/workflows/ci.yml/badge.svg)](https://github.com/peteretelej/starlight-action/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/peteretelej/starlight-action)](https://github.com/peteretelej/starlight-action/releases/latest)
+[![Demo](https://img.shields.io/badge/demo-peteretelej.github.io-blue)](https://peteretelej.github.io/starlight-action/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A GitHub Action that builds your Markdown into a full [Astro Starlight](https://starlight.astro.build/) site with sidebar generation, frontmatter inference, **[support for community themes](https://starlight.astro.build/resources/themes/)**, custom CSS, and GitHub Pages deployment. All in one workflow file.
@@ -65,19 +66,21 @@ protection validation.
 
 ## Inputs
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `docs` | No | `docs/` | Path to the Markdown documentation folder |
-| `title` | No | repo name | Site title shown in header and browser tab |
-| `description` | No | repo description | Site meta description |
-| `logo` | No | - | Path to a logo file (SVG/PNG) for the site header |
-| `readme` | No | `false` | Include README.md as the landing page with links resolved |
-| `base` | No | `/<repo-name>` | Base path override (set to `/` for custom domains) |
-| `config` | No | - | Path to a JSON file with partial Starlight config overrides |
-| `custom_css` | No | - | Comma-separated CSS file paths for custom styles |
-| `theme` | No | - | npm package name for a Starlight community theme |
-| `theme_plugin` | No | - | Theme plugin export name (required with `theme`) |
-| `theme_options` | No | - | JSON object with theme configuration options |
+| Input               | Required | Default          | Description                                                 |
+| ------------------- | -------- | ---------------- | ----------------------------------------------------------- |
+| `docs`              | No       | `docs/`          | Path to the Markdown documentation folder                   |
+| `title`             | No       | repo name        | Site title shown in header and browser tab                  |
+| `description`       | No       | repo description | Site meta description                                       |
+| `logo`              | No       | -                | Path to a logo file (SVG/PNG) for the site header           |
+| `readme`            | No       | `false`          | Include README.md as the landing page with links resolved   |
+| `base`              | No       | `/<repo-name>`   | Base path override (set to `/` for custom domains)          |
+| `config`            | No       | -                | Path to a JSON file with partial Starlight config overrides |
+| `custom_css`        | No       | -                | Comma-separated CSS file paths for custom styles            |
+| `theme`             | No       | -                | npm package name for a Starlight community theme            |
+| `theme_plugin`      | No       | -                | Theme plugin export name (required with `theme`)            |
+| `theme_options`     | No       | -                | JSON object with theme configuration options                |
+| `astro_version`     | No       | `^6.0.0`         | Astro version range override to unblock builds              |
+| `starlight_version` | No       | `~0.38.0`        | Starlight version range override to unblock builds          |
 
 ## How It Works
 
@@ -102,12 +105,8 @@ Example `.starlight.config.json`:
 
 ```json
 {
-  "social": [
-    { "label": "GitHub", "icon": "github", "href": "https://github.com/user/repo" }
-  ],
-  "head": [
-    { "tag": "meta", "attrs": { "name": "og:image", "content": "/social.png" } }
-  ],
+  "social": [{ "label": "GitHub", "icon": "github", "href": "https://github.com/user/repo" }],
+  "head": [{ "tag": "meta", "attrs": { "name": "og:image", "content": "/social.png" } }],
   "customCss": ["./src/custom.css"]
 }
 ```
@@ -149,11 +148,11 @@ See the [Starlight CSS & Styling guide](https://starlight.astro.build/guides/css
 
 Install a Starlight community theme by providing its npm package name and plugin export:
 
-| Input | Description |
-|-------|-------------|
-| `theme` | npm package name (e.g. `starlight-theme-rapide`) |
-| `theme_plugin` | Export name - use `{ name }` for named exports, plain name for default exports |
-| `theme_options` | Optional JSON object with theme configuration |
+| Input           | Description                                                                    |
+| --------------- | ------------------------------------------------------------------------------ |
+| `theme`         | npm package name (e.g. `starlight-theme-rapide`)                               |
+| `theme_plugin`  | Export name - use `{ name }` for named exports, plain name for default exports |
+| `theme_options` | Optional JSON object with theme configuration                                  |
 
 Example using [Rapide](https://starlight-theme-rapide.vercel.app/getting-started/) (default export, no options):
 
@@ -169,7 +168,7 @@ Example using [Catppuccin](https://starlight.catppuccin.com/getting-started/) wi
 ```yaml
 - uses: peteretelej/starlight-action@v1
   with:
-    theme: "@catppuccin/starlight"
+    theme: '@catppuccin/starlight'
     theme_plugin: catppuccin
     theme_options: '{"flavor":"mocha","accent":"blue"}'
 ```
@@ -180,7 +179,7 @@ Example using [Ion](https://louisescher.github.io/starlight-ion-theme/getting-st
 - uses: peteretelej/starlight-action@v1
   with:
     theme: starlight-ion-theme
-    theme_plugin: "{ ion }"
+    theme_plugin: '{ ion }'
     theme_options: '{"footer":true}'
     custom_css: ./docs/overrides.css
 ```
@@ -199,18 +198,23 @@ Most themes on [Starlight Themes](https://starlight.astro.build/resources/themes
 
 ```bash
 npm install
-
-npm test
-
-npm run lint
-
-npm run check
-
-npm run build
+npm test          # unit tests (79 cases)
+npm run lint      # eslint
+npm run check     # typescript
+npm run build     # bundle dist/index.js via ncc
 ```
 
-Run the full end-to-end test locally (scaffolds a real Starlight project,
-builds it, and verifies HTML output):
+### Git hooks
+
+`npm install` sets up git hooks automatically via the `prepare` script:
+
+- **pre-commit**: rebuilds `dist/` when source files change
+- **pre-push**: runs lint, typecheck, tests, and build before allowing a push
+
+### End-to-end testing
+
+Run a full end-to-end test locally that scaffolds a real Starlight project,
+installs dependencies, builds it, and verifies HTML output:
 
 ```bash
 # Using built-in test fixtures
@@ -228,9 +232,15 @@ When given a repo path, the test will use its `docs/` folder and `README.md`
 (if present), matching how the action runs in CI. Use `--output` to save the
 built site for local inspection.
 
+### Scheduled validation
+
+A [weekly validation workflow](.github/workflows/scheduled-validation.yml)
+runs every Monday against this repo's own `docs/` folder to catch
+compatibility issues early. It tests with both the default configuration and
+with the `starlight-theme-rapide` theme. If either build fails, it
+automatically opens a GitHub issue labeled `validation-failure`.
+
 Source lives in `src/` and is bundled to `dist/index.js` via `@vercel/ncc`.
-A pre-commit hook runs the build automatically, so `dist/` stays in sync with
-source changes.
 
 ## License
 

@@ -1,0 +1,21 @@
+{
+  "social": [
+    {
+      "label": "GitHub",
+      "icon": "github",
+      "href": "https://github.com/peteretelej/starlight-action"
+    }
+  ],
+  "head": [
+    {
+      "tag": "meta",
+      "attrs": {
+        "name": "og:image",
+        "content": "https://repository-images.githubusercontent.com/peteretelej/starlight-action"
+      }
+    }
+  ],
+  "editLink": {
+    "baseUrl": "https://github.com/peteretelej/starlight-action/edit/main/"
+  }
+}
