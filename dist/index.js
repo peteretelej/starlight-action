@@ -87668,10 +87668,11 @@ async function scaffoldProject(theme, options) {
     // Astro 5+ silently ignores content without an explicit collection definition.
     // Without this file, docs build but produce 0 pages.
     const contentConfig = `import { defineCollection } from 'astro:content'
+import { docsLoader } from '@astrojs/starlight/loaders'
 import { docsSchema } from '@astrojs/starlight/schema'
 
 export const collections = {
-  docs: defineCollection({ schema: docsSchema() }),
+  docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
 }
 `;
     fs.writeFileSync(path.join(projectDir, 'src', 'content.config.ts'), contentConfig, 'utf-8');

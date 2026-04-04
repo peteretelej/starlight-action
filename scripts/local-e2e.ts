@@ -158,12 +158,13 @@ async function main(): Promise<void> {
     fs.mkdirSync(contentDocsDir, { recursive: true })
     fs.mkdirSync(path.join(projectDir, 'public'), { recursive: true })
 
-    // 4. Write content collection config (Astro 5+ requires this, otherwise 0 pages built)
+    // 4. Write content collection config (Astro 6 requires a loader)
     const contentConfig = `import { defineCollection } from 'astro:content'
+import { docsLoader } from '@astrojs/starlight/loaders'
 import { docsSchema } from '@astrojs/starlight/schema'
 
 export const collections = {
-  docs: defineCollection({ schema: docsSchema() }),
+  docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
 }
 `
     fs.writeFileSync(path.join(projectDir, 'src', 'content.config.ts'), contentConfig)
