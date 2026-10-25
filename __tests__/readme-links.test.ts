@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { createTempDir } from './helpers.js'
 import { rewriteReadmeLinks } from '../src/readme-links.js'
 
 describe('rewriteReadmeLinks', () => {
@@ -139,5 +140,85 @@ describe('rewriteReadmeLinks', () => {
     const content = '<video src="https://example.com/video.mp4" controls></video>'
     const result = await rewriteReadmeLinks(content, 'docs', '/my-repo')
     expect(result).toContain('https://example.com/video.mp4')
+  })
+})
+
+describe('rewriteReadmeLinks with repo context', () => {
+  it('rewrites links to existing repo files to GitHub blob URLs', async () => {
+    const dir = createTempDir({
+      'LICENSE': 'MIT',
+      'CONTRIBUTING.md': 'How to contribute.',
+      'examples/demo.rs': 'fn main() {}',
+    })
+    const content =
+      'See [license](LICENSE), [contributing](CONTRIBUTING.md) and [demo](examples/demo.rs).'
+    const result = await rewriteReadmeLinks(content, 'docs', '/my-repo', {
+      repoRoot: dir,
+      repoUrl: 'https://github.com/owner/repo',
+    })
+    expect(result).toContain('https://github.com/owner/repo/blob/HEAD/LICENSE')
+    expect(result).toContain('https://github.com/owner/repo/blob/HEAD/CONTRIBUTING.md')
+    expect(result).toContain('https://github.com/owner/repo/blob/HEAD/examples/demo.rs')
+  })
+
+  it('preserves anchors when rewriting repo file links', async () => {
+    const dir = createTempDir({ 'CONTRIBUTING.md': 'How to contribute.' })
+    const content = 'See [contributing](CONTRIBUTING.md#style).'
+    const result = await rewriteReadmeLinks(content, 'docs', '/my-repo', {
+      repoRoot: dir,
+      repoUrl: 'https://github.com/owner/repo',
+    })
+    expect(result).toContain('https://github.com/owner/repo/blob/HEAD/CONTRIBUTING.md#style')
+  })
+
+  it('leaves links to files missing from the repo unchanged', async () => {
+    const dir = createTempDir({})
+    const content = 'See [made-up](does-not-exist.md).'
+    const result = await rewriteReadmeLinks(content, 'docs', '/my-repo', {
+      repoRoot: dir,
+      repoUrl: 'https://github.com/owner/repo',
+    })
+    expect(result).toContain('does-not-exist.md')
+  })
+
+  it('leaves links to directories unchanged', async () => {
+    const dir = createTempDir({ 'examples/readme.md': 'hi' })
+    const content = 'See [nowhere](no-such-dir).'
+    const result = await rewriteReadmeLinks(content, 'docs', '/my-repo', {
+      repoRoot: dir,
+      repoUrl: 'https://github.com/owner/repo',
+    })
+    expect(result).toContain('(no-such-dir)')
+  })
+
+  it('rewrites links to repo directories to GitHub tree URLs', async () => {
+    const dir = createTempDir({ 'examples/agent-refactor/README.md': 'hi' })
+    const content = 'See [examples](examples/agent-refactor/).'
+    const result = await rewriteReadmeLinks(content, 'docs', '/my-repo', {
+      repoRoot: dir,
+      repoUrl: 'https://github.com/owner/repo',
+    })
+    expect(result).toContain('https://github.com/owner/repo/tree/HEAD/examples/agent-refactor')
+  })
+
+  it('still rewrites docs-folder links when repo context is given', async () => {
+    const dir = createTempDir({ 'docs/guide.md': 'Guide.', 'LICENSE': 'MIT' })
+    const content = 'See the [guide](docs/guide.md) and [license](LICENSE).'
+    const result = await rewriteReadmeLinks(content, 'docs', '/my-repo', {
+      repoRoot: dir,
+      repoUrl: 'https://github.com/owner/repo',
+    })
+    expect(result).toContain('/my-repo/guide/')
+    expect(result).toContain('https://github.com/owner/repo/blob/HEAD/LICENSE')
+  })
+
+  it('resolves percent-encoded repo file links', async () => {
+    const dir = createTempDir({ 'my file.md': 'content' })
+    const content = 'See [doc](my%20file.md).'
+    const result = await rewriteReadmeLinks(content, 'docs', '/my-repo', {
+      repoRoot: dir,
+      repoUrl: 'https://github.com/owner/repo',
+    })
+    expect(result).toContain('https://github.com/owner/repo/blob/HEAD/my%20file.md')
   })
 })

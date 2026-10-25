@@ -27,7 +27,21 @@ describe('processFrontmatter', () => {
     expect(result).toMatch(/^---\n/)
   })
 
-  it('infers title from filename when no heading exists', () => {
+  it('strips the leading # heading used as the title', () => {
+    const dir = createTempDir({
+      'page.md': '# My Page Title\n\nSome content here.\n',
+    })
+    const filePath = path.join(dir, 'page.md')
+
+    processFrontmatter(filePath)
+
+    const result = fs.readFileSync(filePath, 'utf-8')
+    expect(result).toContain('title: "My Page Title"')
+    expect(result).not.toContain('# My Page Title')
+    expect(result).toContain('Some content here.')
+  })
+
+  it('keeps the body unchanged when title comes from filename', () => {
     const dir = createTempDir({
       'getting-started.md': 'Some content without a heading.\n',
     })
@@ -37,6 +51,20 @@ describe('processFrontmatter', () => {
 
     const result = fs.readFileSync(filePath, 'utf-8')
     expect(result).toContain('title: "Getting Started"')
+    expect(result).toContain('Some content without a heading.')
+  })
+
+  it('keeps a non-leading # heading in the body', () => {
+    const dir = createTempDir({
+      'page.md': 'Intro text first.\n\n# Later Heading\n\nMore.\n',
+    })
+    const filePath = path.join(dir, 'page.md')
+
+    processFrontmatter(filePath)
+
+    const result = fs.readFileSync(filePath, 'utf-8')
+    expect(result).toContain('title: "Later Heading"')
+    expect(result).toContain('# Later Heading')
   })
 
   it('leaves existing frontmatter with title unchanged', () => {
@@ -61,6 +89,8 @@ describe('processFrontmatter', () => {
     const result = fs.readFileSync(filePath, 'utf-8')
     expect(result).toContain('title: "Heading From Content"')
     expect(result).toContain('order: 1')
+    expect(result).not.toContain('# Heading From Content')
+    expect(result).toContain('Body.')
   })
 
   it('uses directory name for index.md title', () => {

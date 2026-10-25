@@ -12,6 +12,33 @@ export interface CopyCssResult {
   configPaths: string[]
 }
 
+const BUILTIN_CSS_FILENAME = 'starlight-action.css'
+
+const BUILTIN_CSS = `/* Injected by starlight-action: layout README badge rows with spacing */
+.sl-markdown-content .readme-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.75rem;
+  align-items: center;
+}
+
+.sl-markdown-content .readme-badges img {
+  margin: 0;
+}
+`
+
+/**
+ * Writes the action's built-in stylesheet into the project and returns its
+ * config-relative path. Loaded before user CSS so custom_css can override it.
+ */
+export function writeBuiltinCss(projectDir: string): string[] {
+  const stylesDir = path.join(projectDir, 'src', 'styles')
+  fs.mkdirSync(stylesDir, { recursive: true })
+  fs.writeFileSync(path.join(stylesDir, BUILTIN_CSS_FILENAME), BUILTIN_CSS, 'utf-8')
+  core.info(`Wrote built-in stylesheet to src/styles/${BUILTIN_CSS_FILENAME}`)
+  return [`./src/styles/${BUILTIN_CSS_FILENAME}`]
+}
+
 /**
  * Parses comma-separated CSS file paths, validates them, copies them into the
  * scaffolded Starlight project, and returns config-relative paths.

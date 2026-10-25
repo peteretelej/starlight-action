@@ -34,8 +34,9 @@ require.cache[require.resolve('@actions/core')] = {
 
 import { processAllFrontmatter } from '../src/frontmatter.js'
 import { copyDocs } from '../src/copy-docs.js'
-import { copyCss } from '../src/copy-css.js'
+import { copyCss, writeBuiltinCss } from '../src/copy-css.js'
 import { rewriteReadmeLinks } from '../src/readme-links.js'
+import { polishAllBadgeRows } from '../src/badges.js'
 import { generateConfig } from '../src/config.js'
 
 const FIXTURES_DIR = path.join(__dirname, '..', '__tests__', 'fixtures', 'basic-docs')
@@ -85,6 +86,22 @@ function parseArgs(): {
 function run(cmd: string, cwd: string): void {
   console.log(`$ ${cmd}`)
   execSync(cmd, { cwd, stdio: 'inherit' })
+}
+
+/**
+ * Best-effort GitHub repo URL from the workspace's git remote, used for
+ * rewriting README links to repo files.
+ */
+function gitRepoUrl(workspace: string): string | undefined {
+  try {
+    const url = execSync('git config --get remote.origin.url', { cwd: workspace })
+      .toString()
+      .trim()
+    const match = url.match(/github\.com[:/](.+?)(?:\.git)?$/)
+    return match ? `https://github.com/${match[1]}` : undefined
+  } catch {
+    return undefined
+  }
 }
 
 function copyDirSync(src: string, dest: string): void {
@@ -181,26 +198,36 @@ export const collections = {
     // 6. Process frontmatter (adds title from headings, required by schema)
     await processAllFrontmatter(contentDocsDir)
 
-    // 6b. Copy custom CSS files
-    const { configPaths: customCssPaths } = await copyCss({
+    // 6a. Polish badge rows
+    await polishAllBadgeRows(contentDocsDir)
+
+    // 6b. Copy custom CSS files (built-in styles first so user CSS overrides)
+    const builtinCssPaths = writeBuiltinCss(projectDir)
+    const { configPaths } = await copyCss({
       customCssInput: customCss,
       workspaceDir,
       projectDir,
     })
-    if (customCssPaths.length > 0) {
-      console.log(`Copied ${customCssPaths.length} custom CSS file(s)`)
+    const customCssPaths = [...builtinCssPaths, ...configPaths]
+    if (configPaths.length > 0) {
+      console.log(`Copied ${configPaths.length} custom CSS file(s)`)
     }
 
     // Use base: / for local preview so assets resolve correctly with `serve`
     const base = outputDir ? '/' : `/${repoName}`
 
     // 7. Rewrite README links if readme was copied
+    let indexHasBadges = false
     if (useReadme) {
       const indexPath = path.join(contentDocsDir, 'index.md')
       if (fs.existsSync(indexPath)) {
         const content = fs.readFileSync(indexPath, 'utf-8')
-        const rewritten = await rewriteReadmeLinks(content, 'docs', base)
+        const rewritten = await rewriteReadmeLinks(content, 'docs', base, {
+          repoRoot: workspaceDir,
+          repoUrl: gitRepoUrl(workspaceDir),
+        })
         fs.writeFileSync(indexPath, rewritten, 'utf-8')
+        indexHasBadges = rewritten.includes('readme-badges')
         console.log('Rewrote README links in index.md')
       }
     }
@@ -247,6 +274,23 @@ export const collections = {
       copyDirSync(distDir, outputDir)
       console.log(`\nSite written to ${outputDir}`)
       console.log(`Serve it with: npx serve ${outputDir}`)
+    }
+
+    // Verify the landing page: single h1 (Starlight renders the frontmatter
+    // title) and badge rows present when the README had them
+    const landingPage = path.join(distDir, 'index.html')
+    if (useReadme && fs.existsSync(landingPage)) {
+      const html = fs.readFileSync(landingPage, 'utf-8')
+      const h1Count = (html.match(/<h1/g) ?? []).length
+      console.log(`Landing page h1 count: ${h1Count}`)
+      if (h1Count > 1) {
+        console.error('\nFAILED: landing page has duplicate h1 headings')
+        process.exit(1)
+      }
+      if (indexHasBadges && !html.includes('readme-badges')) {
+        console.error('\nFAILED: badge row markup missing from built landing page')
+        process.exit(1)
+      }
     }
 
     console.log('\nPASSED: Local e2e test succeeded')

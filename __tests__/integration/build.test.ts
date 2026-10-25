@@ -7,6 +7,7 @@ import { generateSidebar } from '../../src/sidebar.js'
 import { generateConfig } from '../../src/config.js'
 import { copyDocs } from '../../src/copy-docs.js'
 import { rewriteReadmeLinks } from '../../src/readme-links.js'
+import { polishAllBadgeRows } from '../../src/badges.js'
 
 vi.mock('@actions/core', () => ({
   info: vi.fn(),
@@ -28,8 +29,12 @@ describe('integration: full pipeline', () => {
       'docs/getting-started.md': '# Getting Started\n\nWelcome to the docs.\n',
       'docs/api/reference.md': '# API Reference\n\nThe API docs.\n',
       'docs/api/endpoints.md': '---\norder: 1\n---\n\n# Endpoints\n\nList of endpoints.\n',
+      'LICENSE': 'MIT',
       'README.md':
-        '# My Project\n\nSee the [guide](docs/getting-started.md) and [API](docs/api/reference.md).\n',
+        '# My Project\n\n' +
+        '[![CI](https://img.shields.io/badge/ci)](https://example.com/ci)\n' +
+        '[![npm](https://img.shields.io/badge/npm)](https://example.com/npm)\n\n' +
+        'See the [guide](docs/getting-started.md), [API](docs/api/reference.md) and [license](LICENSE).\n',
     })
 
     // Simulate scaffolded project directory
@@ -69,17 +74,30 @@ describe('integration: full pipeline', () => {
     expect(endpoints).toContain('title: "Endpoints"')
     expect(endpoints).toContain('order: 1')
 
-    // Step 3: Rewrite README links
+    // The index title comes from the README's leading h1, which is stripped
     const indexPath = path.join(contentDocsDir, 'index.md')
+    expect(fs.readFileSync(indexPath, 'utf-8')).toContain('title: "My Project"')
+    expect(fs.readFileSync(indexPath, 'utf-8')).not.toContain('# My Project')
+
+    // Step 3: Polish badge rows
+    await polishAllBadgeRows(contentDocsDir)
+    expect(fs.readFileSync(indexPath, 'utf-8')).toContain('<p class="readme-badges">')
+
+    // Step 4: Rewrite README links
     const indexContent = fs.readFileSync(indexPath, 'utf-8')
-    const rewritten = await rewriteReadmeLinks(indexContent, 'docs', '/my-repo')
+    const rewritten = await rewriteReadmeLinks(indexContent, 'docs', '/my-repo', {
+      repoRoot: workspace,
+      repoUrl: 'https://github.com/owner/repo',
+    })
     fs.writeFileSync(indexPath, rewritten, 'utf-8')
 
     const finalIndex = fs.readFileSync(indexPath, 'utf-8')
     expect(finalIndex).toContain('/my-repo/getting-started/')
     expect(finalIndex).toContain('/my-repo/api/reference/')
+    expect(finalIndex).toContain('https://github.com/owner/repo/blob/HEAD/LICENSE')
+    expect(finalIndex).toContain('<p class="readme-badges">')
 
-    // Step 4: Generate sidebar
+    // Step 5: Generate sidebar
     const sidebar = generateSidebar(contentDocsDir)
     expect(sidebar.length).toBeGreaterThan(0)
 

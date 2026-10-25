@@ -5,8 +5,9 @@ import { scaffoldProject } from './scaffold.js'
 import { copyDocs } from './copy-docs.js'
 import { processAllFrontmatter } from './frontmatter.js'
 import { rewriteReadmeLinks } from './readme-links.js'
+import { polishAllBadgeRows } from './badges.js'
 import { generateConfig } from './config.js'
-import { copyCss } from './copy-css.js'
+import { copyCss, writeBuiltinCss } from './copy-css.js'
 import { buildSite, uploadArtifact } from './build.js'
 
 function getGitHubContext(): { repoName: string; site: string; githubUrl: string } {
@@ -107,11 +108,14 @@ async function run(): Promise<void> {
 
     // Step 3: Copy custom CSS files
     core.startGroup('Copy custom CSS')
-    const { configPaths: customCssPaths } = await copyCss({
+    // Built-in styles are written first so user custom_css can override them.
+    const builtinCssPaths = writeBuiltinCss(projectDir)
+    const { configPaths } = await copyCss({
       customCssInput,
       workspaceDir,
       projectDir,
     })
+    const customCssPaths = [...builtinCssPaths, ...configPaths]
     core.endGroup()
 
     // Step 4: Process frontmatter on all copied docs
@@ -120,20 +124,28 @@ async function run(): Promise<void> {
     await processAllFrontmatter(contentDocsDir)
     core.endGroup()
 
-    // Step 5: Rewrite README links if readme is enabled
+    // Step 5: Polish badge rows on all copied docs
+    core.startGroup('Polish badge rows')
+    await polishAllBadgeRows(contentDocsDir)
+    core.endGroup()
+
+    // Step 6: Rewrite README links if readme is enabled
     if (readmeInput) {
       core.startGroup('Rewrite README links')
       const indexPath = path.join(contentDocsDir, 'index.md')
       if (fs.existsSync(indexPath)) {
         const content = fs.readFileSync(indexPath, 'utf-8')
         const docsFolder = docsInput.replace(/\/$/, '')
-        const rewritten = await rewriteReadmeLinks(content, docsFolder, baseInput)
+        const rewritten = await rewriteReadmeLinks(content, docsFolder, baseInput, {
+          repoRoot: workspaceDir,
+          repoUrl: githubUrl || undefined,
+        })
         fs.writeFileSync(indexPath, rewritten, 'utf-8')
       }
       core.endGroup()
     }
 
-    // Step 6: Generate Astro/Starlight config
+    // Step 7: Generate Astro/Starlight config
     core.startGroup('Generate config')
     generateConfig(projectDir, {
       title,
@@ -150,12 +162,12 @@ async function run(): Promise<void> {
     })
     core.endGroup()
 
-    // Step 7: Build the site
+    // Step 8: Build the site
     core.startGroup('Build site')
     const distDir = await buildSite(projectDir)
     core.endGroup()
 
-    // Step 8: Upload artifact
+    // Step 9: Upload artifact
     core.startGroup('Upload artifact')
     await uploadArtifact(distDir)
     core.endGroup()
